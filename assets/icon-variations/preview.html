@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Remote Jobs — App Icon Variations</title>
+<style>
+  :root { --b:#2563EB; --s:#0EA5E9; --g:#22C55E; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:#0b1220; color:#e5e7eb; padding:32px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  p.sub { color:#94a3b8; margin:0 0 28px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px; }
+  .card { background:#111827; border:1px solid #1f2937; border-radius:20px; padding:20px; }
+  .name { font-weight:700; margin-bottom:2px; }
+  .desc { color:#94a3b8; font-size:13px; margin-bottom:16px; min-height:34px; }
+  .hero { display:flex; gap:18px; align-items:center; margin-bottom:18px; }
+  .hero img { width:120px; height:120px; border-radius:27px; box-shadow:0 12px 30px rgba(0,0,0,.45); }
+  .row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .row.light { background:#f8fafc; border-radius:12px; padding:12px; }
+  .s180 { width:90px; height:90px; border-radius:20px; }
+  .s120 { width:60px; height:60px; border-radius:14px; }
+  .s90  { width:48px; height:48px; border-radius:11px; }
+  .s60  { width:36px; height:36px; border-radius:9px; }
+  .s48  { width:28px; height:28px; border-radius:7px; }
+  .label { color:#64748b; font-size:11px; margin:14px 0 6px; text-transform:uppercase; letter-spacing:.06em; }
+  /* Play Store mock */
+  .store { margin-top:36px; background:#111827; border:1px solid #1f2937; border-radius:20px; padding:20px; }
+  .store-row { display:flex; align-items:center; gap:14px; padding:12px 6px; border-bottom:1px solid #1f2937; }
+  .store-row img { width:56px; height:56px; border-radius:13px; }
+  .store-row .t { font-weight:600; }
+  .store-row .d { color:#94a3b8; font-size:13px; }
+  .store-row .cta { margin-left:auto; background:var(--b); color:#fff; border:none; border-radius:20px; padding:8px 20px; font-weight:600; }
+</style>
+</head>
+<body>
+  <h1>AI Remote Jobs — App Icon Variations</h1>
+  <p class="sub">Vector SVG, scalable & crisp. Compare large vs. small sizes and on light/dark. Pick one and I'll export the PNG app assets.</p>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="store">
+    <div class="label">Play Store list preview (56px)</div>
+    <div id="store"></div>
+  </div>
+
+<script>
+  const variants = [
+    { file:"icon-a-neural-home.svg", name:"A · Neural Home-Case", desc:"White house+briefcase on blue gradient, blue neural net inside, green growth arrow." },
+    { file:"icon-b-briefcase-roof.svg", name:"B · Briefcase-Roof", desc:"White bg, bold blue house+briefcase, handle on the roof peak, green arrow door." },
+    { file:"icon-c-monoline.svg", name:"C · Monoline Minimal", desc:"Single-stroke outline, briefcase slot, green AI spark. Ultra-clean / premium." },
+    { file:"icon-d-deepblue.svg", name:"D · Deep Blue Bold", desc:"Navy→blue gradient, bold white house+briefcase, sky neural nodes, green arrow." },
+  ];
+
+  const grid = document.getElementById("grid");
+  for (const v of variants) {
+    const sizes = ["s180","s120","s90","s60","s48"];
+    grid.insertAdjacentHTML("beforeend", `
+      <div class="card">
+        <div class="name">${v.name}</div>
+        <div class="desc">${v.desc}</div>
+        <div class="hero">
+          <img src="${v.file}" alt="${v.name}">
+          <div>
+            <div class="label" style="margin-top:0">Small sizes (dark)</div>
+            <div class="row">${sizes.map(s=>`<img class="${s}" src="${v.file}">`).join("")}</div>
+            <div class="label">Small sizes (light)</div>
+            <div class="row light">${sizes.map(s=>`<img class="${s}" src="${v.file}">`).join("")}</div>
+          </div>
+        </div>
+      </div>`);
+  }
+
+  const store = document.getElementById("store");
+  for (const v of variants) {
+    store.insertAdjacentHTML("beforeend", `
+      <div class="store-row">
+        <img src="${v.file}">
+        <div>
+          <div class="t">AI Remote Jobs</div>
+          <div class="d">Learn AI skills · Unlock remote opportunities</div>
+        </div>
+        <button class="cta">Install</button>
+      </div>`);
+  }
+</script>
+</body>
+</html>

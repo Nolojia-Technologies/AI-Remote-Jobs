@@ -1,0 +1,50 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Variation D — "Deep Blue Bold": navy→blue gradient, bold white house+briefcase,
+       green growth-arrow door, sky-blue neural nodes on the roof, handle slot. -->
+  <defs>
+    <linearGradient id="d_bg" x1="160" y1="80" x2="880" y2="980" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E3A8A"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="d_house" x1="512" y1="300" x2="512" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E6EEFF"/>
+    </linearGradient>
+    <linearGradient id="d_green" x1="512" y1="560" x2="512" y2="772" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <radialGradient id="d_glow" cx="512" cy="430" r="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0EA5E9" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0EA5E9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#d_bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#d_glow)"/>
+
+  <!-- House + briefcase silhouette -->
+  <g>
+    <rect x="312" y="488" width="400" height="274" rx="42" fill="url(#d_house)"/>
+    <path d="M282 504 L496 326 Q512 313 528 326 L742 504 Z" fill="url(#d_house)"/>
+    <!-- briefcase handle slot -->
+    <rect x="476" y="400" width="72" height="22" rx="11" fill="url(#d_bg)"/>
+  </g>
+
+  <!-- Sky-blue neural nodes + links over the roof base -->
+  <g stroke="#0EA5E9" stroke-width="9" stroke-linecap="round" opacity="0.9">
+    <line x1="430" y1="470" x2="512" y2="446"/>
+    <line x1="512" y1="446" x2="594" y2="470"/>
+  </g>
+  <g fill="#0EA5E9">
+    <circle cx="430" cy="470" r="14"/>
+    <circle cx="512" cy="446" r="16"/>
+    <circle cx="594" cy="470" r="14"/>
+  </g>
+
+  <!-- Green growth-arrow door -->
+  <g fill="url(#d_green)">
+    <path d="M468 624 L512 564 L556 624 Z"/>
+    <rect x="497" y="618" width="30" height="144" rx="11"/>
+  </g>
+</svg>

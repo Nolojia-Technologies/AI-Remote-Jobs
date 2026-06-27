@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ── Rich text editor (Tiptap / ProseMirror) ── */
+.lesson-editor { padding: 20px 24px; min-height: 100%; outline: none; font-size: 16px; line-height: 1.7; }
+.lesson-editor:focus { outline: none; }
+.lesson-editor p { margin: 0 0 0.9em; }
+.lesson-editor h1 { font-size: 1.9rem; font-weight: 800; margin: 1.2em 0 0.5em; }
+.lesson-editor h2 { font-size: 1.5rem; font-weight: 700; margin: 1.1em 0 0.4em; }
+.lesson-editor h3 { font-size: 1.25rem; font-weight: 700; margin: 1em 0 0.3em; }
+.lesson-editor h4 { font-size: 1.1rem; font-weight: 700; margin: 0.9em 0 0.3em; }
+.lesson-editor ul { list-style: disc; padding-left: 1.5em; margin: 0 0 0.9em; }
+.lesson-editor ol { list-style: decimal; padding-left: 1.5em; margin: 0 0 0.9em; }
+.lesson-editor li { margin: 0.25em 0; }
+.lesson-editor blockquote { border-left: 4px solid hsl(var(--primary)); background: hsl(var(--muted)); margin: 1em 0; padding: 0.5em 1em; border-radius: 6px; }
+.lesson-editor a { color: hsl(var(--primary)); text-decoration: underline; }
+.lesson-editor img, .lesson-editor .lesson-img { max-width: 100%; height: auto; border-radius: 8px; }
+.lesson-editor img[data-align="left"] { display: block; margin-right: auto; }
+.lesson-editor img[data-align="center"] { display: block; margin-left: auto; margin-right: auto; }
+.lesson-editor img[data-align="right"] { display: block; margin-left: auto; }
+.lesson-editor img.ProseMirror-selectednode { outline: 2px solid hsl(var(--primary)); }
+.lesson-editor figure { margin: 1em 0; }
+.lesson-editor figcaption { color: hsl(var(--muted-foreground)); font-size: 0.85em; text-align: center; margin-top: 4px; }
+.lesson-editor hr { border: none; border-top: 2px solid hsl(var(--border)); margin: 1.5em 0; }
+.lesson-editor pre { background: #0b1220; color: #e5e7eb; padding: 14px; border-radius: 8px; overflow-x: auto; margin: 1em 0; font-size: 14px; }
+.lesson-editor pre code { background: transparent; color: inherit; padding: 0; }
+.lesson-editor :not(pre) > code { background: hsl(var(--muted)); padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+.lesson-editor table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+.lesson-editor th, .lesson-editor td { border: 1px solid hsl(var(--border)); padding: 8px; }
+.lesson-editor th { background: hsl(var(--muted)); font-weight: 700; }
+.lesson-editor .tableWrapper { overflow-x: auto; }
+.lesson-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground));
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+/* lowlight (highlight.js) — minimal token colors */
+.hljs-comment, .hljs-quote { color: #94a3b8; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #c792ea; }
+.hljs-string, .hljs-attr, .hljs-addition { color: #c3e88d; }
+.hljs-number, .hljs-literal { color: #f78c6c; }
+.hljs-title, .hljs-section, .hljs-type { color: #82aaff; }

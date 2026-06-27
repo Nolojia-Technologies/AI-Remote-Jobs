@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm install *)",
+      "PowerShell(npx tsc --noEmit --skipLibCheck 2>&1 | Select-Object -First 40)",
+      "PowerShell(npx tsc --noEmit --skipLibCheck 2>&1 | Select-Object -First 50)",
+      "PowerShell(npx tsc --noEmit --skipLibCheck 2>&1 | Select-Object -First 60)",
+      "PowerShell(npx tsc --noEmit --skipLibCheck 2>&1 | Select-Object -First 30)",
+      "PowerShell(npx tsc --noEmit --skipLibCheck 2>&1)",
+      "PowerShell(npx expo start --non-interactive 2>&1 | Select-Object -First 30)",
+      "PowerShell($env:CI = \"1\"; npx expo start --tunnel --clear 2>&1 | Select-Object -First 80)",
+      "PowerShell(npx expo install expo@~54.0.0 -- --legacy-peer-deps 2>&1 | Select-Object -Last 8)",
+      "PowerShell(npm uninstall *)",
+      "PowerShell(npx eas-cli@latest build:view e40804bc-e486-4cac-a520-280382d38902 2>&1 | Select-Object -Last 25)",
+      "PowerShell(npm ci *)",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; foreach\\($f in @\\(\"icon.png\",\"adaptive-icon.png\",\"favicon.png\",\"notification-icon.png\"\\)\\){ $p=\"C:\\\\Users\\\\USER\\\\Desktop\\\\AI Remote JOBS\\\\assets\\\\images\\\\$f\"; if\\(Test-Path $p\\){ $i=[System.Drawing.Image]::FromFile\\($p\\); \"$f = $\\($i.Width\\)x$\\($i.Height\\)\"; $i.Dispose\\(\\) } })",
+      "PowerShell($env:BROWSER=\"none\"; $env:CI=\"1\"; Start-Process -FilePath \"npx\" -ArgumentList \"expo start --web --port 8081\" -RedirectStandardOutput \"$env:TEMP\\\\expo-web.log\" -RedirectStandardError \"$env:TEMP\\\\expo-web.err.log\" -WindowStyle Hidden -PassThru | Select-Object Id; Write-Output \"started\")",
+      "PowerShell($env:BROWSER=\"none\"; npx expo start --web --port 8081)",
+      "PowerShell(eas build:list *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Push-Location *)",
+      "PowerShell(eas project:info *)"
+    ]
+  }
+}

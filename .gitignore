@@ -1,0 +1,52 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+dist-test/
+web-build/
+expo-env.d.ts
+
+# native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# native build outputs (Android / iOS)
+build/
+.gradle/
+.cxx/
+android/local.properties
+android/app/build/
+ios/build/
+ios/Pods/
+*.apk
+*.aab
+*.aab.idsig
+*.hprof
+*.keystore
+!debug.keystore
+*.iml
+
+# Next.js (admin portal)
+.next/
+out/
+*.tsbuildinfo
+
+# IDE
+.idea/
+
+# secrets / env
+.env
+.env*.local
+
+# misc
+*.log
+.DS_Store
+npm-debug.*
+
+# @generated expo-cli sync-2b81b286409207a5da26e14c78851eb30d8ccbdb

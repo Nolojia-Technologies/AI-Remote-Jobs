@@ -1,0 +1,371 @@
+import { create } from "zustand";
+import { supabase } from "../lib/supabase";
+import { Profile } from "../types/app.types";
+import {
+  Job,
+  JobApplication,
+  JobEligibility,
+  JobWithStatus,
+  RequirementCheck,
+} from "../types/jobs.types";
+import { MOCK_JOBS } from "../data/jobs";
+import { useUserStore } from "./userStore";
+import { logEvent } from "../lib/analytics";
+import { recordRatingSignal } from "../hooks/useRating";
+import { lifetimeAdXp } from "../ads/adXp";
+import { JOB_AD_XP_FRACTION } from "../constants/xp";
+
+export const JOB_XP = {
+  VIEW: 2,
+  SAVE: 5,
+  SHARE: 5,
+  APPLY: 50,
+  UNLOCK: 100,
+  DAILY_CHECKIN: 10,
+} as const;
+
+interface JobProgress {
+  completedModules: number;
+  passedQuizzes: number;
+}
+
+// ─── Pure eligibility engine (used by screens & components) ───────────────────
+export function computeEligibility(
+  job: Job,
+  profile: Profile | null,
+  progress: JobProgress,
+  adXpLifetime = 0
+): JobEligibility {
+  const totalXp = profile?.xp ?? 0;
+  const level = profile?.level ?? 1;
+  const streak = profile?.streak_days ?? 0;
+  const req = job.requirements;
+
+  // Ads can only contribute a capped fraction of a job's required XP — the rest
+  // must be earned through learning. `effectiveXp` is what counts toward unlock.
+  const adXpCap = Math.round(req.minXP * JOB_AD_XP_FRACTION);
+  const learningXp = Math.max(0, totalXp - adXpLifetime);
+  const adXpAllowed = Math.min(adXpLifetime, adXpCap);
+  const effectiveXp = learningXp + adXpAllowed;
+  const xp = effectiveXp;
+
+  const totalCourses = req.requiredModuleIds.length;
+  const neededCourses = Math.ceil((totalCourses * req.completionPercent) / 100);
+  const coursesDone = Math.min(progress.completedModules, totalCourses);
+
+  const checks: RequirementCheck[] = [
+    { label: "Experience Points", current: effectiveXp, target: req.minXP, met: effectiveXp >= req.minXP, unit: "XP" },
+    { label: "Level", current: level, target: req.minLevel, met: level >= req.minLevel },
+    {
+      label: "Daily Streak",
+      current: streak,
+      target: req.minStreakDays,
+      met: streak >= req.minStreakDays,
+      unit: "days",
+    },
+  ];
+
+  if (totalCourses > 0) {
+    checks.push({
+      label: "Courses Completed",
+      current: coursesDone,
+      target: neededCourses,
+      met: coursesDone >= neededCourses,
+    });
+  }
+
+  if (req.requiresFinalQuiz) {
+    checks.push({
+      label: "Final Assessment",
+      current: progress.passedQuizzes,
+      target: 1,
+      met: progress.passedQuizzes >= 1,
+    });
+  }
+
+  const ratios = checks.map((c) =>
+    c.target <= 0 ? 1 : Math.min(1, c.current / c.target)
+  );
+  const completionPercent = Math.round(
+    (ratios.reduce((a, b) => a + b, 0) / ratios.length) * 100
+  );
+
+  const isUnlocked = checks.every((c) => c.met);
+
+  const matchReasons: string[] = [];
+  if (checks.find((c) => c.label === "Courses Completed")?.met ?? totalCourses === 0)
+    matchReasons.push("Completed required courses");
+  if (xp >= req.minXP) matchReasons.push(`Strong XP (${xp.toLocaleString()})`);
+  if (level >= req.minLevel) matchReasons.push(`Reached Level ${level}`);
+  if (req.minStreakDays > 0 && streak >= req.minStreakDays)
+    matchReasons.push(`${streak}-day streak`);
+  if (req.requiresFinalQuiz && progress.passedQuizzes >= 1)
+    matchReasons.push("Passed assessments");
+
+  return {
+    isUnlocked,
+    matchScore: completionPercent,
+    completionPercent,
+    checks,
+    matchReasons,
+    coursesRemaining: Math.max(0, neededCourses - progress.completedModules),
+    testsRemaining: req.requiresFinalQuiz && progress.passedQuizzes < 1 ? 1 : 0,
+    learningXp,
+    adXpAllowed,
+    adXpCap,
+  };
+}
+
+interface JobState {
+  jobs: Job[];
+  savedJobIds: Set<string>;
+  viewedJobIds: Set<string>;
+  applications: JobApplication[];
+  unlockedJobIds: Set<string>;
+  progress: JobProgress;
+  dailyRewardClaimed: boolean;
+  isLoading: boolean;
+
+  loadUserJobData: (userId: string) => Promise<void>;
+  toggleSave: (userId: string, jobId: string) => Promise<void>;
+  recordView: (userId: string, jobId: string) => Promise<void>;
+  recordShare: (userId: string, jobId: string) => Promise<void>;
+  recordUnlock: (userId: string, job: Job) => Promise<boolean>;
+  applyToJob: (
+    userId: string,
+    job: Job,
+    matchScore: number,
+    resume: string
+  ) => Promise<{ error: string | null }>;
+  claimDailyReward: (userId: string) => Promise<boolean>;
+
+  getJobWithStatus: (jobId: string) => JobWithStatus | undefined;
+  getAllWithStatus: () => JobWithStatus[];
+  isNew: (job: Job) => boolean;
+}
+
+function isNewJob(job: Job): boolean {
+  return Date.now() - new Date(job.postedAt).getTime() < 3 * 86400000;
+}
+
+export const useJobStore = create<JobState>((set, get) => ({
+  jobs: MOCK_JOBS,
+  savedJobIds: new Set(),
+  viewedJobIds: new Set(),
+  applications: [],
+  unlockedJobIds: new Set(),
+  progress: { completedModules: 0, passedQuizzes: 0 },
+  dailyRewardClaimed: false,
+  isLoading: false,
+
+  loadUserJobData: async (userId) => {
+    set({ isLoading: true });
+
+    // Compute course/quiz progress from learning data (graceful on failure).
+    let completedModules = 0;
+    let passedQuizzes = 0;
+    try {
+      const [lessonsRes, progressRes, quizRes] = await Promise.all([
+        supabase.from("lessons").select("id, module_id"),
+        supabase.from("user_lesson_progress").select("lesson_id").eq("user_id", userId).eq("completed", true),
+        supabase.from("user_quiz_results").select("id").eq("user_id", userId).eq("passed", true),
+      ]);
+
+      const completedLessonIds = new Set(
+        (progressRes.data as any[])?.map((r) => r.lesson_id) ?? []
+      );
+      const byModule = new Map<string, { total: number; done: number }>();
+      for (const l of (lessonsRes.data as any[]) ?? []) {
+        const m = byModule.get(l.module_id) ?? { total: 0, done: 0 };
+        m.total += 1;
+        if (completedLessonIds.has(l.id)) m.done += 1;
+        byModule.set(l.module_id, m);
+      }
+      for (const m of byModule.values()) {
+        if (m.total > 0 && m.done === m.total) completedModules += 1;
+      }
+      passedQuizzes = (quizRes.data as any[])?.length ?? 0;
+    } catch {
+      // keep defaults
+    }
+
+    // Saved jobs, applications, daily reward (each guarded individually).
+    const savedJobIds = new Set<string>();
+    let applications: JobApplication[] = [];
+    let dailyRewardClaimed = false;
+
+    try {
+      const { data } = await supabase.from("saved_jobs").select("job_id").eq("user_id", userId);
+      (data as any[])?.forEach((r) => savedJobIds.add(r.job_id));
+    } catch {}
+
+    try {
+      const { data } = await supabase
+        .from("job_applications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("applied_at", { ascending: false });
+      if (data) applications = data as unknown as JobApplication[];
+    } catch {}
+
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("daily_job_rewards")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("reward_date", today)
+        .maybeSingle();
+      dailyRewardClaimed = !!data;
+    } catch {}
+
+    set({
+      progress: { completedModules, passedQuizzes },
+      savedJobIds,
+      applications,
+      dailyRewardClaimed,
+      isLoading: false,
+    });
+  },
+
+  toggleSave: async (userId, jobId) => {
+    const saved = new Set(get().savedJobIds);
+    const wasSaved = saved.has(jobId);
+
+    if (wasSaved) {
+      saved.delete(jobId);
+      set({ savedJobIds: saved });
+      try {
+        await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", jobId);
+      } catch {}
+    } else {
+      saved.add(jobId);
+      set({ savedJobIds: saved });
+      try {
+        await supabase.from("saved_jobs").insert({ user_id: userId, job_id: jobId } as any);
+      } catch {}
+      await useUserStore.getState().awardXP(userId, JOB_XP.SAVE, "job_save", "Saved a job");
+    }
+  },
+
+  recordView: async (userId, jobId) => {
+    if (get().viewedJobIds.has(jobId)) return;
+    const viewed = new Set(get().viewedJobIds);
+    viewed.add(jobId);
+    set({ viewedJobIds: viewed });
+    try {
+      await supabase.from("job_views").insert({ user_id: userId, job_id: jobId } as any);
+    } catch {}
+    await useUserStore.getState().awardXP(userId, JOB_XP.VIEW, "job_view", "Viewed a job");
+    logEvent("job_view", { job_id: jobId });
+  },
+
+  recordShare: async (userId, jobId) => {
+    await useUserStore.getState().awardXP(userId, JOB_XP.SHARE, "job_share", "Shared a job");
+    logEvent("job_share", { job_id: jobId });
+  },
+
+  recordUnlock: async (userId, job) => {
+    if (get().unlockedJobIds.has(job.id)) return false;
+    const unlocked = new Set(get().unlockedJobIds);
+    unlocked.add(job.id);
+    set({ unlockedJobIds: unlocked });
+
+    let firstTime = true;
+    try {
+      const { error } = await supabase
+        .from("job_unlocks")
+        .insert({ user_id: userId, job_id: job.id } as any);
+      if (error && error.code === "23505") firstTime = false; // already recorded
+    } catch {}
+
+    if (firstTime) {
+      await useUserStore
+        .getState()
+        .awardXP(userId, JOB_XP.UNLOCK, "job_unlock", `Unlocked: ${job.title}`);
+      logEvent("job_unlock", { job_id: job.id });
+      recordRatingSignal("job_unlock");
+    }
+    return firstTime;
+  },
+
+  applyToJob: async (userId, job, matchScore, resume) => {
+    if (get().applications.some((a) => a.job_id === job.id)) {
+      return { error: "You have already applied to this job." };
+    }
+    const application: JobApplication = {
+      id: `local-${Date.now()}`,
+      user_id: userId,
+      job_id: job.id,
+      status: "applied",
+      match_score: matchScore,
+      resume_snapshot: resume,
+      applied_at: new Date().toISOString(),
+    };
+
+    try {
+      const { data } = await supabase
+        .from("job_applications")
+        .insert({
+          user_id: userId,
+          job_id: job.id,
+          status: "applied",
+          match_score: matchScore,
+          resume_snapshot: resume,
+        } as any)
+        .select()
+        .single();
+      if (data) Object.assign(application, data);
+    } catch {}
+
+    set({ applications: [application, ...get().applications] });
+    await useUserStore.getState().awardXP(userId, JOB_XP.APPLY, "job_apply", `Applied: ${job.title}`);
+    logEvent("job_apply", { job_id: job.id });
+    return { error: null };
+  },
+
+  claimDailyReward: async (userId) => {
+    if (get().dailyRewardClaimed) return false;
+    set({ dailyRewardClaimed: true });
+
+    let isFirst = true;
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const { error } = await supabase
+        .from("daily_job_rewards")
+        .insert({ user_id: userId, reward_date: today } as any);
+      if (error && error.code === "23505") isFirst = false;
+    } catch {}
+
+    if (isFirst) {
+      await useUserStore
+        .getState()
+        .awardXP(userId, JOB_XP.DAILY_CHECKIN, "daily_job_checkin", "Daily jobs check-in");
+    }
+    return isFirst;
+  },
+
+  getJobWithStatus: (jobId) => {
+    const job = get().jobs.find((j) => j.id === jobId);
+    if (!job) return undefined;
+    return get().getAllWithStatus().find((j) => j.id === jobId);
+  },
+
+  getAllWithStatus: () => {
+    const { jobs, savedJobIds, progress, applications } = get();
+    const profile = useUserStore.getState().profile;
+    const adXp = lifetimeAdXp();
+    return jobs.map((job) => {
+      const eligibility = computeEligibility(job, profile, progress, adXp);
+      return {
+        ...job,
+        eligibility,
+        isSaved: savedJobIds.has(job.id),
+        isNew: isNewJob(job),
+        application: applications.find((a) => a.job_id === job.id),
+      };
+    });
+  },
+
+  isNew: isNewJob,
+}));

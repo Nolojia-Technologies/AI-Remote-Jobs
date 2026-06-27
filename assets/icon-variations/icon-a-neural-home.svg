@@ -1,0 +1,56 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Variation A — "Neural Home-Case": white house+briefcase on blue gradient,
+       blue neural network inside, green growth arrow, briefcase-handle slot in roof. -->
+  <defs>
+    <linearGradient id="a_bg" x1="120" y1="80" x2="900" y2="980" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="a_house" x1="512" y1="300" x2="512" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAF2FF"/>
+    </linearGradient>
+    <linearGradient id="a_green" x1="512" y1="520" x2="512" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+    <linearGradient id="a_gloss" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background squircle -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#a_bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#a_gloss)"/>
+
+  <!-- House + briefcase silhouette (roof overlaps body so they merge) -->
+  <g>
+    <rect x="312" y="486" width="400" height="276" rx="42" fill="url(#a_house)"/>
+    <path d="M280 502 L496 324 Q512 311 528 324 L744 502 Z" fill="url(#a_house)"/>
+    <!-- briefcase handle slot punched out of the roof -->
+    <rect x="476" y="398" width="72" height="22" rx="11" fill="url(#a_bg)"/>
+  </g>
+
+  <!-- Neural network (behind the arrow) -->
+  <g stroke="#2563EB" stroke-width="9" stroke-linecap="round" opacity="0.55">
+    <line x1="372" y1="584" x2="652" y2="584"/>
+    <line x1="372" y1="584" x2="398" y2="706"/>
+    <line x1="652" y1="584" x2="626" y2="706"/>
+    <line x1="398" y1="706" x2="626" y2="706"/>
+    <line x1="372" y1="584" x2="626" y2="706"/>
+    <line x1="652" y1="584" x2="398" y2="706"/>
+  </g>
+  <g fill="#2563EB">
+    <circle cx="372" cy="584" r="13"/>
+    <circle cx="652" cy="584" r="13"/>
+    <circle cx="398" cy="706" r="13"/>
+    <circle cx="626" cy="706" r="13"/>
+  </g>
+
+  <!-- Green upward growth arrow (hero accent) -->
+  <g fill="url(#a_green)">
+    <path d="M470 598 L512 540 L554 598 Z"/>
+    <rect x="498" y="592" width="28" height="126" rx="10"/>
+  </g>
+</svg>

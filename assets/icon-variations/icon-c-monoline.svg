@@ -1,0 +1,39 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Variation C — "Monoline": minimal single-stroke house+briefcase outline on a
+       blue gradient, briefcase-handle slot, green AI spark. Ultra clean / premium. -->
+  <defs>
+    <linearGradient id="c_bg" x1="120" y1="120" x2="904" y2="904" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="c_gloss" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.15"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#c_bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#c_gloss)"/>
+
+  <!-- House + briefcase outline (single monoline) -->
+  <path d="M330 470 L330 726 Q330 742 346 742 L678 742 Q694 742 694 726 L694 470"
+        stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M296 496 L500 336 Q512 326 524 336 L728 496"
+        stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- briefcase handle slot near the roof peak -->
+  <rect x="478" y="404" width="68" height="20" rx="10" fill="url(#c_bg)"/>
+
+  <!-- neural hint: two nodes + link -->
+  <line x1="430" y1="600" x2="556" y2="640" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" opacity="0.55"/>
+  <circle cx="430" cy="600" r="17" fill="#FFFFFF"/>
+  <circle cx="594" cy="652" r="17" fill="#FFFFFF"/>
+
+  <!-- Green AI spark (4-point sparkle = growth + intelligence) -->
+  <path d="M512 532
+           C 520 572 528 580 568 588
+           C 528 596 520 604 512 644
+           C 504 604 496 596 456 588
+           C 496 580 504 572 512 532 Z"
+        fill="#22C55E"/>
+</svg>

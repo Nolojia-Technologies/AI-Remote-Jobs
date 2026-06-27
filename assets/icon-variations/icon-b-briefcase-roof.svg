@@ -1,0 +1,47 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Variation B — "Briefcase-Roof": white background, bold blue house+briefcase,
+       briefcase handle on the roof peak, green growth-arrow door, white circuitry. -->
+  <defs>
+    <linearGradient id="b_sym" x1="280" y1="300" x2="760" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="b_green" x1="512" y1="588" x2="512" y2="772" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4ADE80"/>
+      <stop offset="1" stop-color="#16A34A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="#FFFFFF"/>
+  <rect x="8" y="8" width="1008" height="1008" rx="222" fill="none" stroke="#EEF2F7" stroke-width="4"/>
+
+  <!-- Briefcase handle on the roof peak -->
+  <path d="M468 322 Q468 286 512 286 Q556 286 556 322" stroke="url(#b_sym)" stroke-width="26" stroke-linecap="round" fill="none"/>
+
+  <!-- House + briefcase silhouette -->
+  <g>
+    <rect x="300" y="480" width="424" height="292" rx="44" fill="url(#b_sym)"/>
+    <path d="M272 496 L500 318 Q512 306 524 318 L752 496 Z" fill="url(#b_sym)"/>
+  </g>
+
+  <!-- White neural network (subtle, inside) -->
+  <g stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" opacity="0.85">
+    <line x1="376" y1="556" x2="648" y2="556"/>
+    <line x1="376" y1="556" x2="408" y2="636"/>
+    <line x1="648" y1="556" x2="616" y2="636"/>
+    <line x1="408" y1="636" x2="616" y2="636"/>
+  </g>
+  <g fill="#FFFFFF">
+    <circle cx="376" cy="556" r="12"/>
+    <circle cx="648" cy="556" r="12"/>
+    <circle cx="408" cy="636" r="12"/>
+    <circle cx="616" cy="636" r="12"/>
+  </g>
+
+  <!-- Green growth-arrow "door" -->
+  <g fill="url(#b_green)">
+    <path d="M470 660 L512 602 L554 660 Z"/>
+    <rect x="498" y="656" width="28" height="116" rx="10"/>
+  </g>
+</svg>
