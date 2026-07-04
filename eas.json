@@ -33,7 +33,9 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://xuurnnvppxthnnsvrcgd.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1dXJubnZwcHh0aG5uc3ZyY2dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MDE5NjIsImV4cCI6MjA5NjA3Nzk2Mn0.Ry6gBD3S6pGf7_sZv8KwfRLxaZ9GZ_HW61Yhkiu-i_M",
-        "EXPO_PUBLIC_ENABLE_META_MEDIATION": "true"
+        "EXPO_PUBLIC_ENABLE_META_MEDIATION": "true",
+        "EXPO_PUBLIC_FACEBOOK_APP_ID": "26851703637859103",
+        "EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN": "ec3604c1e9cef7ac42026b4d7b61c65e"
       }
     },
     "production": {
@@ -43,7 +45,9 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://xuurnnvppxthnnsvrcgd.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1dXJubnZwcHh0aG5uc3ZyY2dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MDE5NjIsImV4cCI6MjA5NjA3Nzk2Mn0.Ry6gBD3S6pGf7_sZv8KwfRLxaZ9GZ_HW61Yhkiu-i_M",
-        "EXPO_PUBLIC_ENABLE_META_MEDIATION": "true"
+        "EXPO_PUBLIC_ENABLE_META_MEDIATION": "true",
+        "EXPO_PUBLIC_FACEBOOK_APP_ID": "26851703637859103",
+        "EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN": "ec3604c1e9cef7ac42026b4d7b61c65e"
       }
     },
     "testads": {
