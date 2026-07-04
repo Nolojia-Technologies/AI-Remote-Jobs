@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 
 // AI Remote Jobs — real AdMob App ID (Android). iOS has no app yet, so it keeps
 // Google's sample App ID so the SDK never crashes on a missing/invalid id.
-const ANDROID_APP_ID = "ca-app-pub-9972540077910178~8539725754";
+const ANDROID_APP_ID = "ca-app-pub-4958259042282217~4182404694";
 const TEST_IOS_APP_ID = "ca-app-pub-3940256099942544~1458002511";
 
 // Only accept a REAL App ID (digits, not the "xxxx" placeholders in .env).
@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "AI Remote Jobs",
   slug: "ai-home-jobs",
   owner: "shaun-2",
-  version: "1.0.0",
+  version: "1.0.3",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "aihustleacademy",
@@ -45,7 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    versionCode: 10,
+    versionCode: 13,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#2563EB",

@@ -21,16 +21,16 @@ export const ADS_MODULE_AVAILABLE =
  */
 
 // ─── Real AdMob IDs (production) ───────────────────────────────
-export const ADMOB_APP_ID_ANDROID = "ca-app-pub-9972540077910178~8539725754";
+export const ADMOB_APP_ID_ANDROID = "ca-app-pub-4958259042282217~4182404694";
 
 type AdKind = "rewarded" | "interstitial" | "appOpen" | "banner" | "native";
 
 const PROD: Record<AdKind, string> = {
-  rewarded: "ca-app-pub-9972540077910178/7094782146", // Rewarded XP
-  interstitial: "ca-app-pub-9972540077910178/5278607369", // Interstitial Main
-  appOpen: "ca-app-pub-9972540077910178/5058125837", // App Open
-  banner: "ca-app-pub-9972540077910178/5797482113", // Banner Main
-  native: "ca-app-pub-9972540077910178/1211471472", // Native Advanced
+  rewarded: "ca-app-pub-4958259042282217/7542088838", // Rewarded XP
+  interstitial: "ca-app-pub-4958259042282217/7809682148", // Interstitial Main
+  appOpen: "ca-app-pub-4958259042282217/7641313727", // App Open
+  banner: "ca-app-pub-4958259042282217/4111898723", // Banner Main
+  native: "ca-app-pub-4958259042282217/4915925498", // Native Advanced
 };
 
 // ─── Google sample TEST units (development) ────────────────────
