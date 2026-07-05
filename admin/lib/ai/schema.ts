@@ -85,6 +85,25 @@ export const quizSchema = z.object({
 });
 export type QuizOutput = z.infer<typeof quizSchema>;
 
+// ─── Job Readiness Certification: bank question generation ───────────────────
+// Auto-graded types only (no essay/fill-blank) + the extra bank metadata.
+export const certQuestionGenSchema = z.object({
+  questions: z
+    .array(
+      z.object({
+        type: z.enum(["multiple_choice", "true_false", "scenario"]),
+        prompt: z.string(),
+        options: z.array(z.string()).default([]),
+        answer: z.string(),
+        explanation: z.string().default(""),
+        difficulty: z.enum(["beginner", "intermediate", "advanced", "expert", "master"]).default("intermediate"),
+        topic: z.string().default(""),
+      })
+    )
+    .min(1),
+});
+export type CertQuestionGenOutput = z.infer<typeof certQuestionGenSchema>;
+
 // ─── Improve / translate ─────────────────────────────────────────────────────
 export const textSchema = z.object({ title: z.string().optional(), body: z.string() });
 export type TextOutput = z.infer<typeof textSchema>;

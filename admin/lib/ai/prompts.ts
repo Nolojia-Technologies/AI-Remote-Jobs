@@ -116,6 +116,28 @@ Return JSON: { "title": string, "questions": [ { "type": string, "prompt": strin
   };
 }
 
+export function certQuestionsPrompt(input: { category: string; topics: string[]; count: number; market: string }) {
+  return {
+    system: VOICE,
+    user: `Generate ${input.count} questions for the GLOBAL "Job Readiness Certification" question bank.
+
+This certification proves a learner genuinely understands the course material and is ready to apply for remote jobs. Questions are auto-graded and drawn at random per attempt, so each must be self-contained and unambiguous.
+
+Focus category: ${input.category}
+${input.topics.length ? `Topics to cover: ${input.topics.join(", ")}` : ""}
+Market: ${input.market}
+
+Rules:
+- Use ONLY these types: "multiple_choice" (4 options), "true_false" (options ["True","False"]), "scenario" (a short real-world situation + 4 options). NO essay/fill-blank.
+- "answer" MUST exactly match one of the "options" (for true_false it is "True" or "False").
+- Each question needs a one-line "explanation" and a short "topic".
+- Vary "difficulty" across beginner→advanced. Make scenarios reflect real freelancing / remote-client situations.
+- Keep prompts concise and practical; avoid trick questions and ambiguous wording.
+
+Return JSON: { "questions": [ { "type": string, "prompt": string, "options": string[], "answer": string, "explanation": string, "difficulty": string, "topic": string } ] }`,
+  };
+}
+
 export function improvePrompt(input: { title: string; body: string }) {
   return {
     system: VOICE,

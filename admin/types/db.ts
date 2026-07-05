@@ -143,6 +143,75 @@ export interface Question {
 }
 export type QuestionInput = { quiz_id: string; prompt: string; answer: string } & Partial<Omit<Question, "id" | "quiz_id" | "prompt" | "answer">>;
 
+// ─── Job Readiness Certification ─────────────────────────────────────────────
+export type CertQuizStatus = "draft" | "scheduled" | "published" | "archived";
+export type CertQuestionStatus = "draft" | "published" | "archived";
+export type CertQuestionType = "multiple_choice" | "true_false" | "scenario";
+export type CertQuestionSource = "manual" | "import" | "ai";
+
+export interface CertificationQuiz {
+  id: string;
+  title: string;
+  description: string;
+  status: CertQuizStatus;
+  scheduled_at: string | null;
+  time_limit_minutes: number;
+  questions_per_attempt: number;
+  passing_score: number;
+  randomize_questions: boolean;
+  randomize_answers: boolean;
+  first_attempt_requires_ad: boolean;
+  unlock_ads_required: number;
+  retake_cooldown_minutes: number;
+  retake_ads_required: number;
+  suspicious_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+export type CertificationQuizInput = Partial<Omit<CertificationQuiz, "id" | "created_at" | "updated_at">>;
+
+export interface CertificationQuestion {
+  id: string;
+  quiz_id: string;
+  type: CertQuestionType;
+  prompt: string;
+  options: string[];
+  correct_answer: string;
+  explanation: string;
+  difficulty: Difficulty;
+  course_category: string;
+  topic: string;
+  tags: string[];
+  estimated_seconds: number;
+  weight: number;
+  randomize_answers: boolean;
+  status: CertQuestionStatus;
+  source: CertQuestionSource;
+  ai_reviewed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+export type CertificationQuestionInput = { quiz_id: string; prompt: string; correct_answer: string } & Partial<
+  Omit<CertificationQuestion, "id" | "quiz_id" | "prompt" | "correct_answer" | "created_at" | "updated_at">
+>;
+
+export const CERT_QUIZ_STATUS_LABELS: Record<CertQuizStatus, string> = {
+  draft: "Draft",
+  scheduled: "Scheduled",
+  published: "Published",
+  archived: "Archived",
+};
+export const CERT_QUESTION_STATUS_LABELS: Record<CertQuestionStatus, string> = {
+  draft: "Draft",
+  published: "Published",
+  archived: "Archived",
+};
+export const CERT_QUESTION_TYPE_LABELS: Record<CertQuestionType, string> = {
+  multiple_choice: "Multiple Choice",
+  true_false: "True / False",
+  scenario: "Scenario",
+};
+
 // ─── Jobs ────────────────────────────────────────────────────────────────────
 export interface Job {
   id: string;
