@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/db";
+import { serviceRoleEnv } from "@/lib/env";
 
 /**
  * SERVER-ONLY service-role client. Bypasses RLS — use ONLY in route handlers /
@@ -7,15 +8,10 @@ import type { Database } from "@/types/db";
  * Never import this into a Client Component.
  */
 export function createAdminClient() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is not set — required for privileged admin operations."
-    );
-  }
+  const { url, serviceRoleKey } = serviceRoleEnv();
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    key,
+    url,
+    serviceRoleKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 }
