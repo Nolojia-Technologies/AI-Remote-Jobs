@@ -9,9 +9,48 @@
 -- Security model: the question bank (with correct answers/explanations) is NEVER
 -- readable by the mobile (authenticated) role. All mobile access goes through the
 -- SECURITY DEFINER RPCs in 018. Admins (is_admin()) get full CRUD for the CMS.
+--
+-- SELF-CONTAINED: this file provisions the two helpers it needs (touch_updated_at,
+-- is_admin) and the admin_emails table, so it can run even if 005 has not been
+-- applied. All definitions are idempotent and identical to 005 — no conflict if
+-- 005 is (or later gets) applied.
 -- ============================================================================
 
 create extension if not exists "pgcrypto";
+
+-- ─── Prerequisites (mirrors 005; safe to run whether or not 005 exists) ──────
+create table if not exists public.admin_emails (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+insert into public.admin_emails (email)
+values ('nolojiatechnologies@gmail.com')
+on conflict (email) do nothing;
+
+-- True when the current authenticated user's email is whitelisted.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.admin_emails
+    where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+$$;
+
+-- Bumps updated_at on row update (used by the triggers below).
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end; $$;
+
+-- admin_emails RLS: admins only (no-op re-create if 005 already set this up).
+alter table public.admin_emails enable row level security;
+drop policy if exists admin_emails_admin on public.admin_emails;
+create policy admin_emails_admin on public.admin_emails for all
+  using (public.is_admin()) with check (public.is_admin());
 
 -- ─── Certification quiz config (one published row = the live certification) ──
 create table if not exists public.certification_quizzes (
