@@ -31,6 +31,7 @@ import { XPIndicator } from "../../src/components/ui/XPIndicator";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 import { AchievementCard } from "../../src/components/profile/AchievementCard";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
+import { JobReadinessCard } from "../../src/components/certification/JobReadinessCard";
 import { LoadingSpinner } from "../../src/components/ui/LoadingSpinner";
 import { getLevelInfo } from "../../src/constants/xp";
 import { CAREER_PATHS } from "../../src/constants/careers";
@@ -117,6 +118,9 @@ export default function ProfileScreen() {
             {(levelInfo.xpForNextLevel - profile.xp).toLocaleString()} XP to Level {profile.level + 1}
           </Text>
         </View>
+
+        {/* Job Readiness Certification status */}
+        <JobReadinessCard />
 
         {/* Stats Grid */}
         <View className="mx-5 mt-4 flex-row gap-3">

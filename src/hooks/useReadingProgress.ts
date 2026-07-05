@@ -24,8 +24,9 @@ export function useReadingProgress(params: {
   const { lesson, userId, courseId, chapterId } = params;
   const base = computeReadingTime(lesson?.body || stripHtml(lesson?.content_html), lesson?.character_count);
   const isPdf = lesson?.lesson_type === "pdf";
-  // PDF lessons have no character count — size the required time by page count.
-  const requiredSeconds = isPdf ? Math.max(60, (lesson?.pdf_pages || 1) * 45) : base.requiredSeconds;
+  // PDF lessons have no character count — size the required time by page count,
+  // floored at the short-lesson tier (3 min) to match the anti-skim policy.
+  const requiredSeconds = isPdf ? Math.max(180, (lesson?.pdf_pages || 1) * 45) : base.requiredSeconds;
   const requiredMinutes = Math.max(1, Math.ceil(requiredSeconds / 60));
 
   const [timeSpent, setTimeSpent] = useState(0);

@@ -68,7 +68,9 @@ export type RewardedTrigger =
   | "unlock_chapter"
   | "unlock_bonus"
   | "skip_waiting"
-  | "unlock_lesson";
+  | "unlock_lesson"
+  | "cert_unlock"
+  | "cert_retry";
 
 export interface AdDailyCounters {
   date: string; // yyyy-mm-dd
