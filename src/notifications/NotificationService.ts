@@ -18,13 +18,15 @@ import * as Notifications from "expo-notifications";
 
 const HOUR = 3600;
 
-type Category = "engagement" | "inactivity" | "quiz" | "energy";
+type Category = "engagement" | "inactivity" | "quiz" | "energy" | "certification";
 
 // Where each notification deep-links when tapped.
 const ROUTES = {
   home: "/",
   learn: "/learn",
   revision: "/revision",
+  jobs: "/jobs",
+  certification: "/certification",
   chapter: (id: string) => `/chapter/${id}`,
 } as const;
 
@@ -66,6 +68,7 @@ const CHANNELS: Record<Category, { name: string; description: string; importance
   inactivity: { name: "Comeback reminders", description: "Gentle nudges when you've been away.", importance: Notifications.AndroidImportance.HIGH },
   quiz: { name: "Quizzes & unlocks", description: "When a quiz, retry, or new chapter is ready.", importance: Notifications.AndroidImportance.HIGH },
   energy: { name: "Energy", description: "When your learning energy has refilled.", importance: Notifications.AndroidImportance.DEFAULT },
+  certification: { name: "Job Readiness", description: "Certification unlocks, retakes, and Job Ready status.", importance: Notifications.AndroidImportance.HIGH },
 };
 
 let setupPromise: Promise<void> | null = null;
@@ -228,6 +231,55 @@ export const NotificationService = {
   async notifyEngagement(delaySeconds = 4 * HOUR): Promise<void> {
     const m = ENGAGEMENT[Math.floor(Math.random() * ENGAGEMENT.length)];
     await schedule("engagement-nudge", m.title, m.body, afterSeconds(delaySeconds), "engagement", ROUTES.home);
+  },
+
+  // ─── Job Readiness Certification ──────────────────────────────────────────
+  /** Reached 80% course completion → the Final Certification Quiz is unlocked. */
+  async notifyCertUnlocked(): Promise<void> {
+    await schedule(
+      "cert-unlocked",
+      "🎯 Certification unlocked!",
+      "You've hit 80% course completion — the Final Certification Quiz is ready. Pass it to become Job Ready.",
+      afterSeconds(60),
+      "certification",
+      ROUTES.certification
+    );
+  },
+
+  /** Retake cooldown expiry (at = epoch ms) → the next attempt is available. */
+  async scheduleRetakeCooldown(at: number): Promise<void> {
+    await schedule(
+      "cert-cooldown",
+      "⏳ Certification retake ready",
+      "Your cooldown is over — retake the Job Readiness Certification now!",
+      afterSeconds((at - Date.now()) / 1000),
+      "certification",
+      ROUTES.certification
+    );
+  },
+
+  /** Passed → Job Ready. */
+  async notifyJobReady(): Promise<void> {
+    await schedule(
+      "cert-job-ready",
+      "🎉 Congratulations!",
+      "You've successfully passed the Job Readiness Certification. You can now apply for remote jobs.",
+      afterSeconds(60),
+      "certification",
+      ROUTES.jobs
+    );
+  },
+
+  /** New jobs available after certification (nudge back to the Jobs tab). */
+  async notifyNewJobsAfterCert(): Promise<void> {
+    await schedule(
+      "cert-new-jobs",
+      "💼 New remote jobs unlocked",
+      "Your certification opened up new jobs — see which ones match your skills.",
+      afterSeconds(2 * HOUR),
+      "certification",
+      ROUTES.jobs
+    );
   },
 
   async cancelAll(): Promise<void> {

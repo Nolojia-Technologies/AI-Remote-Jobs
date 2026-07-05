@@ -1,6 +1,29 @@
 import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { certApi } from "../certification/api";
 import { CertAttempt, CertResult, CertReview, CertStatus } from "../certification/types";
+import { NotificationService } from "../notifications/NotificationService";
+
+// Fire the "80% reached → quiz unlocked" nudge at most once (until certified).
+const UNLOCK_KEY = "@aha/cert/unlocked-notified";
+async function maybeNotifyUnlock(status: CertStatus | null): Promise<void> {
+  try {
+    if (!status?.available) return;
+    if (status.is_job_ready) {
+      await AsyncStorage.removeItem(UNLOCK_KEY);
+      return;
+    }
+    if (status.meets_completion) {
+      const done = await AsyncStorage.getItem(UNLOCK_KEY);
+      if (!done) {
+        await AsyncStorage.setItem(UNLOCK_KEY, "1");
+        void NotificationService.notifyCertUnlocked();
+      }
+    }
+  } catch {
+    // notifications are best-effort
+  }
+}
 
 /**
  * Certification store — wraps the server RPCs. Holds the hub status, the active
@@ -39,6 +62,7 @@ export const useCertificationStore = create<CertificationState>((set, get) => ({
     try {
       const status = await certApi.status();
       set({ status, loading: false });
+      void maybeNotifyUnlock(status);
       return status;
     } catch (e: any) {
       set({ error: e?.message ?? "Failed to load status", loading: false });
@@ -111,7 +135,13 @@ export const useCertificationStore = create<CertificationState>((set, get) => ({
     try {
       const result = await certApi.submitAttempt(attempt.attempt_id);
       set({ activeAttempt: null, lastResult: result });
-      await get().refreshStatus();
+      const status = await get().refreshStatus();
+      if (result.passed) {
+        void NotificationService.notifyJobReady();
+        void NotificationService.notifyNewJobsAfterCert();
+      } else if (status?.cooldown_until) {
+        void NotificationService.scheduleRetakeCooldown(new Date(status.cooldown_until).getTime());
+      }
       return result;
     } catch (e: any) {
       set({ error: e?.message ?? "Failed to submit attempt" });

@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { Trophy, XCircle, RefreshCw, BookOpen, ListChecks, Home } from "lucide-react-native";
 import { useCertificationStore } from "../../src/stores/certificationStore";
 
@@ -9,13 +10,23 @@ export default function CertificationResult() {
   const router = useRouter();
   const { lastResult } = useCertificationStore();
 
+  const anim = useRef(new Animated.Value(0)).current;
+  const passed = !!lastResult?.passed;
+
   // Nothing to show (e.g. deep-linked) → back to hub.
   useEffect(() => {
-    if (!lastResult) router.replace("/certification" as any);
+    if (!lastResult) {
+      router.replace("/certification" as any);
+      return;
+    }
+    // Celebratory pop-in; success haptic on a pass.
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 80 }).start();
+    Haptics.notificationAsync(
+      passed ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
+    ).catch(() => {});
   }, [lastResult]);
   if (!lastResult) return null;
 
-  const passed = lastResult.passed;
   const stats = [
     { label: "Correct", value: lastResult.correct_count, color: "#22C55E" },
     { label: "Incorrect", value: lastResult.incorrect_count, color: "#EF4444" },
@@ -25,7 +36,10 @@ export default function CertificationResult() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <View className={`rounded-3xl p-6 items-center mb-5 ${passed ? "bg-green-600" : "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800"}`}>
+        <Animated.View
+          style={{ opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] }}
+          className={`rounded-3xl p-6 items-center mb-5 ${passed ? "bg-green-600" : "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800"}`}
+        >
           {passed ? <Trophy size={48} color="#FFFFFF" /> : <XCircle size={48} color="#EF4444" />}
           <Text className={`text-2xl font-extrabold mt-3 ${passed ? "text-white" : "text-gray-900 dark:text-white"}`}>
             {passed ? "Congratulations!" : lastResult.expired ? "Time's up" : "Not quite yet"}
@@ -36,7 +50,7 @@ export default function CertificationResult() {
               : `You scored ${lastResult.percentage}%. Required: ${lastResult.passing_score}%. Review your courses and try again.`}
           </Text>
           <Text className={`text-5xl font-extrabold mt-4 ${passed ? "text-white" : "text-gray-900 dark:text-white"}`}>{lastResult.percentage}%</Text>
-        </View>
+        </Animated.View>
 
         <View className="flex-row gap-3 mb-6">
           {stats.map((s) => (
