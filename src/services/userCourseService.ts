@@ -63,6 +63,30 @@ export const userCourseService = {
     return { quiz: quiz as Quiz, questions: (questions ?? []) as Question[] };
   },
 
+  /**
+   * The course to "resume": the most recently touched course that is still
+   * published (prefers an in-progress row over a completed one). Returns null
+   * when the learner hasn't started anything yet → callers fall back to the
+   * course catalog.
+   */
+  async getResumeCourseId(userId: string): Promise<string | null> {
+    const { data } = await db
+      .from("user_progress")
+      .select("course_id,status,updated_at")
+      .eq("user_id", userId)
+      .not("course_id", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(30);
+    const rows = (data ?? []) as { course_id: string | null; status: string }[];
+    if (!rows.length) return null;
+    const candidate = rows.find((r) => r.status === "in_progress") ?? rows[0];
+    const cid = candidate.course_id;
+    if (!cid) return null;
+    // Only resume a course that's still published (skip archived/removed ones).
+    const { data: c } = await db.from("courses").select("id").eq("id", cid).eq("status", "published").maybeSingle();
+    return c ? cid : null;
+  },
+
   /** Completed lesson ids for a course. */
   async getCompletedLessonIds(userId: string, courseId: string): Promise<Set<string>> {
     const { data } = await db.from("user_progress").select("lesson_id").eq("user_id", userId).eq("course_id", courseId).eq("status", "completed");

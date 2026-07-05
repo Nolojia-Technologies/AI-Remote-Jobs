@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from "../../src/stores/authStore";
 import { useUserStore } from "../../src/stores/userStore";
 import { useCertificationStore } from "../../src/stores/certificationStore";
+import { userCourseService } from "../../src/services/userCourseService";
 import { useRewardedAd } from "../../src/hooks/useAds";
 import { useCertTimer, formatClock } from "../../src/certification/useCertTimer";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
@@ -39,6 +40,20 @@ export default function CertificationHub() {
     setBusy(false);
     if (attempt) router.push("/certification/quiz" as any);
     else Alert.alert("Couldn't start", useCertificationStore.getState().error ?? "Please try again.");
+  }
+
+  // Deep-link to the last in-progress course (fallback: Courses catalog).
+  async function continueLearning() {
+    let target = "/(tabs)/learn";
+    if (user) {
+      try {
+        const courseId = await userCourseService.getResumeCourseId(user.id);
+        if (courseId) target = `/course/${courseId}`;
+      } catch {
+        // fall back to the catalog
+      }
+    }
+    router.push(target as any);
   }
 
   async function watchAd() {
@@ -82,7 +97,7 @@ export default function CertificationHub() {
                 status={status}
                 busy={busy}
                 cooldownLeft={cooldownLeft}
-                onContinueLearning={() => router.push("/(tabs)/learn" as any)}
+                onContinueLearning={continueLearning}
                 onWatchAd={watchAd}
                 onStart={beginAttempt}
                 onResume={() => router.push("/certification/quiz" as any)}

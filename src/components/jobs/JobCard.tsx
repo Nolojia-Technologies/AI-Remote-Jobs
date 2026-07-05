@@ -16,6 +16,8 @@ import { ProgressBar } from "../ui/ProgressBar";
 import { JobWithStatus } from "../../types/jobs.types";
 import { ApplicantsBadge, TrendingBadge } from "./SocialBadges";
 import { getApplicants, getTrendingBadge } from "../../lib/socialProof";
+import { useAuthStore } from "../../stores/authStore";
+import { userCourseService } from "../../services/userCourseService";
 
 interface JobCardProps {
   job: JobWithStatus;
@@ -37,7 +39,24 @@ const employmentLabel = {
 
 export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { eligibility } = job;
+
+  // Continue Learning → resume the last in-progress course (fallback: catalog).
+  async function continueLearning() {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    let target = "/(tabs)/learn";
+    if (user) {
+      try {
+        const courseId = await userCourseService.getResumeCourseId(user.id);
+        if (courseId) target = `/course/${courseId}`;
+      } catch {
+        // fall back to the catalog
+      }
+    }
+    router.push(target as any);
+  }
+
   const unlocked = eligibility.isUnlocked;
   const applied = !!job.application;
   const applicants = getApplicants(job);
@@ -175,10 +194,9 @@ export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
             </View>
 
             <TouchableOpacity
-              onPress={async (e) => {
+              onPress={(e) => {
                 e.stopPropagation?.();
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(tabs)/certification" as any);
+                continueLearning();
               }}
               className="rounded-xl bg-primary py-2.5 items-center"
               activeOpacity={0.85}
