@@ -10,12 +10,10 @@ import { Bell } from "lucide-react-native";
 import { TouchableOpacity } from "react-native";
 import { useAuthStore } from "../../src/stores/authStore";
 import { useUserStore } from "../../src/stores/userStore";
-import { useChallengeStore } from "../../src/stores/challengeStore";
 import { useGamificationStore } from "../../src/stores/gamificationStore";
 import { useJobStore } from "../../src/stores/jobStore";
 import { DashboardStats } from "../../src/components/home/DashboardStats";
 import { QuickActions } from "../../src/components/home/QuickActions";
-import { DailyChallengeBanner } from "../../src/components/home/DailyChallengeBanner";
 import { MotivationalCard } from "../../src/components/home/MotivationalCard";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { HomeJobsCard } from "../../src/components/home/HomeJobsCard";
@@ -29,7 +27,6 @@ import { LoadingSpinner } from "../../src/components/ui/LoadingSpinner";
 export default function HomeScreen() {
   const { user } = useAuthStore();
   const { profile, fetchProfile, recordDailyLogin } = useUserStore();
-  const { challenges, fetchChallenges, getCompletedChallengeIds } = useChallengeStore();
   const { fetchLeaderboard, leaderboard } = useGamificationStore();
   const { loadUserJobData, getAllWithStatus } = useJobStore();
   const revision = useRevisionStore();
@@ -39,7 +36,6 @@ export default function HomeScreen() {
     if (!user) return;
     await Promise.all([
       profile ? Promise.resolve() : fetchProfile(user.id),
-      fetchChallenges(user.id),
       fetchLeaderboard("global", user.id),
       loadUserJobData(user.id),
       revision.hydrated ? Promise.resolve() : revision.hydrate(user.id),
@@ -61,8 +57,6 @@ export default function HomeScreen() {
     return <LoadingSpinner fullScreen message="Loading your dashboard..." />;
   }
 
-  const completedIds = getCompletedChallengeIds();
-  const todayChallenge = challenges[0];
   const currentUserRank = leaderboard.find((e) => e.isCurrentUser)?.rank;
 
   const firstName = profile.full_name?.split(" ")[0] ?? "there";
@@ -107,14 +101,6 @@ export default function HomeScreen() {
             streak={profile.streak_days}
             rank={currentUserRank}
           />
-
-          {/* Daily Challenge */}
-          {todayChallenge && (
-            <DailyChallengeBanner
-              challenge={todayChallenge}
-              completedToday={completedIds.has(todayChallenge.id)}
-            />
-          )}
 
           {/* Today's Revision — spaced repetition retention loop */}
           {(() => {

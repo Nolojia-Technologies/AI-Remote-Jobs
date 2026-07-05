@@ -1,7 +1,6 @@
 import { useAdStore } from "../stores/adStore";
 import { useUserStore } from "../stores/userStore";
 import { useLearnStore } from "../stores/learnStore";
-import { useChallengeStore } from "../stores/challengeStore";
 import { useJobStore } from "../stores/jobStore";
 import { useGamificationStore } from "../stores/gamificationStore";
 import { AdMob } from "../lib/admob";
@@ -70,7 +69,7 @@ class Engine {
     const ad = useAdStore.getState();
     const profile = useUserStore.getState().profile;
     const lessons = useLearnStore.getState().completedLessonIds.size;
-    const challenges = useChallengeStore.getState().userSubmissions.length;
+    const challenges = 0; // challenges feature removed (replaced by certification)
     const applications = useJobStore.getState().applications.length;
     const achievements = useGamificationStore
       .getState()

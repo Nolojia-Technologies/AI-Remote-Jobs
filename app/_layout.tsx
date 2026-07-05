@@ -96,11 +96,10 @@ export default function RootLayout() {
             name="quiz/[id]"
             options={{ presentation: "modal", headerShown: false }}
           />
-          <Stack.Screen
-            name="challenge/[id]"
-            options={{ presentation: "modal", headerShown: false }}
-          />
           <Stack.Screen name="chapter/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="certification/quiz" options={{ headerShown: false }} />
+          <Stack.Screen name="certification/result" options={{ headerShown: false }} />
+          <Stack.Screen name="certification/review" options={{ headerShown: false }} />
           <Stack.Screen name="job/[id]" options={{ headerShown: false }} />
           <Stack.Screen
             name="apply/[id]"

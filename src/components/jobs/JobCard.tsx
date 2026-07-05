@@ -1,10 +1,11 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import {
   Lock,
   MapPin,
   Bookmark,
-  Zap,
+  ShieldCheck,
   CheckCircle2,
   Clock,
 } from "lucide-react-native";
@@ -14,7 +15,7 @@ import { Badge } from "../ui/Badge";
 import { ProgressBar } from "../ui/ProgressBar";
 import { JobWithStatus } from "../../types/jobs.types";
 import { ApplicantsBadge, TrendingBadge } from "./SocialBadges";
-import { getApplicants, getTrendingBadge, getCompetitionMessage } from "../../lib/socialProof";
+import { getApplicants, getTrendingBadge } from "../../lib/socialProof";
 
 interface JobCardProps {
   job: JobWithStatus;
@@ -35,12 +36,12 @@ const employmentLabel = {
 };
 
 export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
+  const router = useRouter();
   const { eligibility } = job;
   const unlocked = eligibility.isUnlocked;
   const applied = !!job.application;
   const applicants = getApplicants(job);
   const trending = getTrendingBadge(job);
-  const levelMet = eligibility.checks.find((c) => c.label === "Level")?.met ?? true;
 
   return (
     <TouchableOpacity
@@ -148,35 +149,42 @@ export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
           </View>
         ) : (
           <View>
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center gap-1.5">
-                <Lock size={14} color="#9CA3AF" />
-                <Text className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                  Locked Job
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-1">
-                <Zap size={11} color="#F59E0B" fill="#F59E0B" />
-                <Text className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                  {eligibility.completionPercent}% there
-                </Text>
-              </View>
+            <View className="flex-row items-center gap-1.5 mb-1">
+              <Lock size={14} color="#9CA3AF" />
+              <Text className="text-sm font-bold text-gray-500 dark:text-gray-400">🔒 Job Locked</Text>
+            </View>
+            <Text className="text-xs text-gray-500 dark:text-gray-400 mb-2.5">
+              Complete your learning journey and pass the Job Readiness Certification to unlock this application.
+            </Text>
+
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Course completion</Text>
+              <Text className="text-[11px] font-bold text-blue-600 dark:text-blue-300">{eligibility.completionPercent}%</Text>
             </View>
             <ProgressBar
               progress={eligibility.completionPercent}
               height={5}
-              color="#F59E0B"
-              backgroundColor="#FEF3C7"
+              color={eligibility.completionPercent >= 80 ? "#22C55E" : "#2563EB"}
+              backgroundColor="#E5E7EB"
             />
-            <Text className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
-              🔒 {getCompetitionMessage(
-                applicants,
-                eligibility.coursesRemaining,
-                eligibility.testsRemaining,
-                levelMet,
-                job.requirements.minLevel
-              )}
-            </Text>
+            <View className="flex-row items-center gap-1.5 mt-2 mb-2.5">
+              <ShieldCheck size={13} color="#9CA3AF" />
+              <Text className="text-[11px] text-gray-400">
+                Certification: {eligibility.completionPercent >= 80 ? "quiz unlocked — not passed yet" : "not passed yet"}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={async (e) => {
+                e.stopPropagation?.();
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/(tabs)/certification" as any);
+              }}
+              className="rounded-xl bg-primary py-2.5 items-center"
+              activeOpacity={0.85}
+            >
+              <Text className="text-white text-xs font-bold">Continue Learning</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>

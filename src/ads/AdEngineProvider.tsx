@@ -12,14 +12,15 @@ function pathToScreen(path: string): AdScreen {
   if (p === "/" || p === "/index") return "home";
   if (p.startsWith("/jobs")) return "jobs";
   if (p.startsWith("/learn")) return "learn";
-  if (p.startsWith("/challenges")) return "challenges";
+  // Protect the timed certification quiz/result/review from ads; hub = normal tab.
+  if (p.startsWith("/certification/")) return "quiz";
+  if (p.startsWith("/certification")) return "learn";
   if (p.startsWith("/profile")) return "profile";
   if (p.startsWith("/leaderboard")) return "leaderboard";
   if (p.startsWith("/lesson")) return "lesson";
   if (p.startsWith("/chapter")) return "lesson"; // gamified chapter = learning, protect it
   if (p.startsWith("/revision/session")) return "quiz"; // protect the revision drill
   if (p.startsWith("/quiz")) return "quiz";
-  if (p.startsWith("/challenge/")) return "challenge_detail";
   if (p.startsWith("/job/")) return "job_detail";
   if (p.startsWith("/apply")) return "application";
   if (p.startsWith("/opportunities")) return "opportunities";
@@ -44,9 +45,7 @@ const INTERSTITIAL_ON_OPEN = new Set<AdScreen>([
   "home",
   "learn",
   "jobs",
-  "challenges",
   "profile",
-  "challenge_detail",
   // job opens are handled by JobInterstitialManager (interstitial before nav)
 ]);
 

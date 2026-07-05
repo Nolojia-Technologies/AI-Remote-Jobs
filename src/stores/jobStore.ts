@@ -34,7 +34,9 @@ export function computeEligibility(
   job: Job,
   profile: Profile | null,
   progress: JobProgress,
-  adXpLifetime = 0
+  adXpLifetime = 0,
+  jobReady = false,
+  globalCompletion = 0
 ): JobEligibility {
   const totalXp = profile?.xp ?? 0;
   const level = profile?.level ?? 1;
@@ -83,14 +85,12 @@ export function computeEligibility(
     });
   }
 
-  const ratios = checks.map((c) =>
-    c.target <= 0 ? 1 : Math.min(1, c.current / c.target)
-  );
-  const completionPercent = Math.round(
-    (ratios.reduce((a, b) => a + b, 0) / ratios.length) * 100
-  );
-
-  const isUnlocked = checks.every((c) => c.met);
+  // Jobs now gate SOLELY on the Job Readiness Certification. The per-job checks
+  // above are retained for informational display, but a job unlocks iff the user
+  // is certified (is_job_ready). The progress shown on locked cards is the user's
+  // overall course-completion %, which is what they must raise to unlock the quiz.
+  const completionPercent = globalCompletion;
+  const isUnlocked = jobReady;
 
   const matchReasons: string[] = [];
   if (checks.find((c) => c.label === "Courses Completed")?.met ?? totalCourses === 0)
@@ -125,6 +125,10 @@ interface JobState {
   progress: JobProgress;
   dailyRewardClaimed: boolean;
   isLoading: boolean;
+  /** Global Job Readiness Certification status — the single job-unlock gate. */
+  isJobReady: boolean;
+  /** Overall course-completion % (drives locked-card progress). */
+  certCompletionPercent: number;
 
   loadUserJobData: (userId: string) => Promise<void>;
   toggleSave: (userId: string, jobId: string) => Promise<void>;
@@ -157,6 +161,8 @@ export const useJobStore = create<JobState>((set, get) => ({
   progress: { completedModules: 0, passedQuizzes: 0 },
   dailyRewardClaimed: false,
   isLoading: false,
+  isJobReady: false,
+  certCompletionPercent: 0,
 
   loadUserJobData: async (userId) => {
     set({ isLoading: true });
@@ -219,11 +225,27 @@ export const useJobStore = create<JobState>((set, get) => ({
       dailyRewardClaimed = !!data;
     } catch {}
 
+    // Job Readiness Certification: the single gate that unlocks applications.
+    let isJobReady = false;
+    let certCompletionPercent = 0;
+    try {
+      const [eligRes, compRes] = await Promise.all([
+        supabase.from("job_eligibility").select("is_job_ready").eq("user_id", userId).maybeSingle(),
+        (supabase as any).rpc("get_course_completion"),
+      ]);
+      isJobReady = !!(eligRes.data as any)?.is_job_ready;
+      certCompletionPercent = Number(compRes.data) || 0;
+    } catch {
+      // Certification tables/RPCs not present yet → jobs stay locked, 0% shown.
+    }
+
     set({
       progress: { completedModules, passedQuizzes },
       savedJobIds,
       applications,
       dailyRewardClaimed,
+      isJobReady,
+      certCompletionPercent,
       isLoading: false,
     });
   },
@@ -352,11 +374,11 @@ export const useJobStore = create<JobState>((set, get) => ({
   },
 
   getAllWithStatus: () => {
-    const { jobs, savedJobIds, progress, applications } = get();
+    const { jobs, savedJobIds, progress, applications, isJobReady, certCompletionPercent } = get();
     const profile = useUserStore.getState().profile;
     const adXp = lifetimeAdXp();
     return jobs.map((job) => {
-      const eligibility = computeEligibility(job, profile, progress, adXp);
+      const eligibility = computeEligibility(job, profile, progress, adXp, isJobReady, certCompletionPercent);
       return {
         ...job,
         eligibility,

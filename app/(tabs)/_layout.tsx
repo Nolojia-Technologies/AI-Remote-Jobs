@@ -1,7 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Platform, View } from "react-native";
-import { Home, BookOpen, Zap, User, Briefcase, LucideProps } from "lucide-react-native";
+import { Home, BookOpen, ShieldCheck, User, Briefcase, LucideProps } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StickyBanner } from "../../src/components/ads/StickyBanner";
@@ -90,11 +90,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="challenges"
+        name="certification"
         options={{
-          title: "Challenges",
+          title: "Certify",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon icon={Zap} color={color} focused={focused} />
+            <TabIcon icon={ShieldCheck} color={color} focused={focused} />
           ),
         }}
       />

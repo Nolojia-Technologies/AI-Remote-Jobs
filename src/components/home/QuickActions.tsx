@@ -16,7 +16,7 @@ interface Action {
 const ACTIONS: Action[] = [
   { id: "learn", label: "Learn", emoji: "📚", color: "#2563EB", bgColor: "#EFF6FF", route: "/(tabs)/learn" },
   { id: "jobs", label: "Jobs", emoji: "🔥", color: "#EF4444", bgColor: "#FEF2F2", route: "/(tabs)/jobs" },
-  { id: "challenge", label: "Challenge", emoji: "⚡", color: "#F59E0B", bgColor: "#FFFBEB", route: "/(tabs)/challenges" },
+  { id: "certify", label: "Get Certified", emoji: "🛡️", color: "#2563EB", bgColor: "#EFF6FF", route: "/(tabs)/certification" },
   { id: "leaderboard", label: "Leaderboard", emoji: "🏆", color: "#F59E0B", bgColor: "#FFFBEB", route: "/leaderboard" },
   { id: "opportunities", label: "Practice", emoji: "💼", color: "#22C55E", bgColor: "#F0FDF4", route: "/opportunities" },
   { id: "certificates", label: "Certificates", emoji: "🎓", color: "#8B5CF6", bgColor: "#F5F3FF", route: "/certificates" },
