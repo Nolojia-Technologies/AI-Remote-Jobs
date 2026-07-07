@@ -70,7 +70,8 @@ export type RewardedTrigger =
   | "skip_waiting"
   | "unlock_lesson"
   | "cert_unlock"
-  | "cert_retry";
+  | "cert_retry"
+  | "job_apply";
 
 export interface AdDailyCounters {
   date: string; // yyyy-mm-dd

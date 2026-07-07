@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Lock,
@@ -18,6 +18,7 @@ import { ApplicantsBadge, TrendingBadge } from "./SocialBadges";
 import { getApplicants, getTrendingBadge } from "../../lib/socialProof";
 import { useAuthStore } from "../../stores/authStore";
 import { userCourseService } from "../../services/userCourseService";
+import { useRewardedAd } from "../../hooks/useAds";
 
 interface JobCardProps {
   job: JobWithStatus;
@@ -40,11 +41,11 @@ const employmentLabel = {
 export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
   const router = useRouter();
   const { user } = useAuthStore();
+  const showRewarded = useRewardedAd();
   const { eligibility } = job;
 
-  // Continue Learning → resume the last in-progress course (fallback: catalog).
+  // Resume the last in-progress course (fallback: catalog).
   async function continueLearning() {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     let target = "/(tabs)/learn";
     if (user) {
       try {
@@ -55,6 +56,22 @@ export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
       }
     }
     router.push(target as any);
+  }
+
+  // Locked "Apply Job": watch a rewarded ad, then choose the certification quiz
+  // (which unlocks ALL jobs when passed) or keep learning toward it.
+  async function onApplyLocked() {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const watched = await showRewarded("job_apply");
+    if (!watched) return;
+    Alert.alert(
+      "Unlock remote jobs",
+      "Pass the Job Readiness quiz to unlock ALL jobs — or keep learning to get there.",
+      [
+        { text: "Continue learning", onPress: () => { void continueLearning(); } },
+        { text: "Take quiz", onPress: () => router.push("/(tabs)/certification" as any) },
+      ]
+    );
   }
 
   const unlocked = eligibility.isUnlocked;
@@ -196,12 +213,12 @@ export function JobCard({ job, onPress, onToggleSave }: JobCardProps) {
             <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation?.();
-                continueLearning();
+                onApplyLocked();
               }}
               className="rounded-xl bg-primary py-2.5 items-center"
               activeOpacity={0.85}
             >
-              <Text className="text-white text-xs font-bold">Continue Learning</Text>
+              <Text className="text-white text-xs font-bold">Apply Job</Text>
             </TouchableOpacity>
           </View>
         )}
