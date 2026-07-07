@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View, Text, TouchableOpacity, Linking } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, FileText, CheckCircle2, Lock, Circle, Clock, Play } from "lucide-react-native";
 import { useAuthStore } from "../../../src/stores/authStore";
@@ -25,6 +25,9 @@ export default function LessonViewer() {
   const { id, courseId, chapterId } = useLocalSearchParams<{ id: string; courseId: string; chapterId: string }>();
   const { user } = useAuthStore();
   const { awardXP } = useUserStore();
+  const insets = useSafeAreaInsets();
+  // Lift the bottom action bar above the phone's nav/gesture controls.
+  const bottomBarPad = insets.bottom + 12;
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,7 +193,7 @@ export default function LessonViewer() {
           />
         </View>
 
-        <View className="px-5 pb-6 pt-3 bg-white/95 dark:bg-gray-950/95 border-t border-gray-100 dark:border-gray-800">
+        <View style={{ paddingBottom: bottomBarPad }} className="px-5 pt-3 bg-white/95 dark:bg-gray-950/95 border-t border-gray-100 dark:border-gray-800">
           {reading.alreadyCompleted ? (
             <View className="flex-row items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-2xl py-3.5">
               <CheckCircle2 size={20} color="#22C55E" />
@@ -319,7 +322,7 @@ export default function LessonViewer() {
       </ScrollView>
 
       {/* Floating completion bar */}
-      <View className="absolute left-0 right-0 bottom-0 px-5 pb-6 pt-3 bg-white/95 dark:bg-gray-950/95 border-t border-gray-100 dark:border-gray-800">
+      <View style={{ paddingBottom: bottomBarPad }} className="absolute left-0 right-0 bottom-0 px-5 pt-3 bg-white/95 dark:bg-gray-950/95 border-t border-gray-100 dark:border-gray-800">
         {reading.alreadyCompleted ? (
           <View className="flex-row items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-2xl py-3.5">
             <CheckCircle2 size={20} color="#22C55E" />
