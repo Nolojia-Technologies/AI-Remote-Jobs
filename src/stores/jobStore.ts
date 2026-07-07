@@ -24,6 +24,11 @@ export const JOB_XP = {
   DAILY_CHECKIN: 10,
 } as const;
 
+// Partial unlock: completing this many full courses opens the first
+// PARTIAL_JOB_LIMIT jobs before full certification (which unlocks all jobs).
+export const COURSES_FOR_PARTIAL_UNLOCK = 2;
+export const PARTIAL_JOB_LIMIT = 5;
+
 interface JobProgress {
   completedModules: number;
   passedQuizzes: number;
@@ -35,7 +40,7 @@ export function computeEligibility(
   profile: Profile | null,
   progress: JobProgress,
   adXpLifetime = 0,
-  jobReady = false,
+  unlocked = false,
   globalCompletion = 0
 ): JobEligibility {
   const totalXp = profile?.xp ?? 0;
@@ -85,12 +90,11 @@ export function computeEligibility(
     });
   }
 
-  // Jobs now gate SOLELY on the Job Readiness Certification. The per-job checks
-  // above are retained for informational display, but a job unlocks iff the user
-  // is certified (is_job_ready). The progress shown on locked cards is the user's
-  // overall course-completion %, which is what they must raise to unlock the quiz.
+  // A job unlocks either via full certification (all jobs) or the partial-unlock
+  // rule (first N jobs after 2 completed courses) — decided by the caller and
+  // passed in as `unlocked`. Locked cards show the overall course-completion %.
   const completionPercent = globalCompletion;
-  const isUnlocked = jobReady;
+  const isUnlocked = unlocked;
 
   const matchReasons: string[] = [];
   if (checks.find((c) => c.label === "Courses Completed")?.met ?? totalCourses === 0)
@@ -125,10 +129,12 @@ interface JobState {
   progress: JobProgress;
   dailyRewardClaimed: boolean;
   isLoading: boolean;
-  /** Global Job Readiness Certification status — the single job-unlock gate. */
+  /** Global Job Readiness Certification status — unlocks ALL jobs. */
   isJobReady: boolean;
   /** Overall course-completion % (drives locked-card progress). */
   certCompletionPercent: number;
+  /** Number of fully-completed courses (partial unlock: 2 → first N jobs). */
+  completedCourses: number;
 
   loadUserJobData: (userId: string) => Promise<void>;
   toggleSave: (userId: string, jobId: string) => Promise<void>;
@@ -163,6 +169,7 @@ export const useJobStore = create<JobState>((set, get) => ({
   isLoading: false,
   isJobReady: false,
   certCompletionPercent: 0,
+  completedCourses: 0,
 
   loadUserJobData: async (userId) => {
     set({ isLoading: true });
@@ -225,16 +232,19 @@ export const useJobStore = create<JobState>((set, get) => ({
       dailyRewardClaimed = !!data;
     } catch {}
 
-    // Job Readiness Certification: the single gate that unlocks applications.
+    // Certification (unlocks all jobs) + partial unlock (2 courses → first N jobs).
     let isJobReady = false;
     let certCompletionPercent = 0;
+    let completedCourses = 0;
     try {
-      const [eligRes, compRes] = await Promise.all([
+      const [eligRes, compRes, coursesRes] = await Promise.all([
         supabase.from("job_eligibility").select("is_job_ready").eq("user_id", userId).maybeSingle(),
         (supabase as any).rpc("get_course_completion"),
+        (supabase as any).rpc("get_completed_courses_count"),
       ]);
       isJobReady = !!(eligRes.data as any)?.is_job_ready;
       certCompletionPercent = Number(compRes.data) || 0;
+      completedCourses = Number(coursesRes.data) || 0;
     } catch {
       // Certification tables/RPCs not present yet → jobs stay locked, 0% shown.
     }
@@ -246,6 +256,7 @@ export const useJobStore = create<JobState>((set, get) => ({
       dailyRewardClaimed,
       isJobReady,
       certCompletionPercent,
+      completedCourses,
       isLoading: false,
     });
   },
@@ -374,11 +385,15 @@ export const useJobStore = create<JobState>((set, get) => ({
   },
 
   getAllWithStatus: () => {
-    const { jobs, savedJobIds, progress, applications, isJobReady, certCompletionPercent } = get();
+    const { jobs, savedJobIds, progress, applications, isJobReady, certCompletionPercent, completedCourses } = get();
     const profile = useUserStore.getState().profile;
     const adXp = lifetimeAdXp();
-    return jobs.map((job) => {
-      const eligibility = computeEligibility(job, profile, progress, adXp, isJobReady, certCompletionPercent);
+    // Partial unlock: the first PARTIAL_JOB_LIMIT jobs open after 2 completed
+    // courses; certification unlocks everything.
+    const partialUnlocks = completedCourses >= COURSES_FOR_PARTIAL_UNLOCK;
+    return jobs.map((job, i) => {
+      const unlocked = isJobReady || (partialUnlocks && i < PARTIAL_JOB_LIMIT);
+      const eligibility = computeEligibility(job, profile, progress, adXp, unlocked, certCompletionPercent);
       return {
         ...job,
         eligibility,
