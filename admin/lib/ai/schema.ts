@@ -104,6 +104,29 @@ export const certQuestionGenSchema = z.object({
 });
 export type CertQuestionGenOutput = z.infer<typeof certQuestionGenSchema>;
 
+// ─── Remote job listings generation ─────────────────────────────────────────
+export const jobGenSchema = z.object({
+  jobs: z
+    .array(
+      z.object({
+        title: z.string(),
+        company: z.string(),
+        description: z.string().default(""),
+        salary_min: z.number().default(0),
+        salary_max: z.number().default(0),
+        salary_currency: z.string().default("USD"),
+        country: z.string().default("Remote"),
+        country_flag: z.string().default("🌍"),
+        category: z.string().default("general"),
+        type: z.enum(["remote", "hybrid", "full_time", "part_time", "freelance"]).default("remote"),
+        difficulty: z.string().default("beginner"),
+        application_url: z.string().nullable().default(null),
+      })
+    )
+    .min(1),
+});
+export type JobGenOutput = z.infer<typeof jobGenSchema>;
+
 // ─── Improve / translate ─────────────────────────────────────────────────────
 export const textSchema = z.object({ title: z.string().optional(), body: z.string() });
 export type TextOutput = z.infer<typeof textSchema>;

@@ -138,6 +138,28 @@ Return JSON: { "questions": [ { "type": string, "prompt": string, "options": str
   };
 }
 
+export function jobsPrompt(input: { count: number; focus: string; market: string }) {
+  return {
+    system: VOICE,
+    user: `Generate ${input.count} realistic REMOTE job listings for the "AI Remote Jobs" app.
+
+${input.focus ? `Focus/theme: ${input.focus}` : "Mix of categories (content writing, virtual assistant, customer support, social media, prompt engineering, data entry, research)."}
+Target market: ${input.market}. Roles must be genuinely doable by AI-skilled remote workers in Kenya, Qatar, Africa and the global market — no senior/onsite roles.
+
+For each job provide:
+- "title", "company", "description" (1–2 practical sentences)
+- "salary_min" & "salary_max": integer MONTHLY amounts with salary_min < salary_max
+- "salary_currency" (usually "USD")
+- "country" and a matching "country_flag" emoji
+- "category" (kebab-case, e.g. ai-content-writing, virtual-assistant, customer-support, social-media, prompt-engineering, data-entry, research)
+- "type": one of remote | hybrid | full_time | part_time | freelance
+- "difficulty": one of beginner | intermediate | advanced
+- "application_url": a plausible URL or null
+
+Return JSON: { "jobs": [ { "title": string, "company": string, "description": string, "salary_min": number, "salary_max": number, "salary_currency": string, "country": string, "country_flag": string, "category": string, "type": string, "difficulty": string, "application_url": string|null } ] }`,
+  };
+}
+
 export function improvePrompt(input: { title: string; body: string }) {
   return {
     system: VOICE,

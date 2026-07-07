@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, MoreHorizontal, Eye, EyeOff, Copy, Trash2, Pencil, Loader2, Upload, ClipboardCheck, Sparkles } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Eye, EyeOff, Copy, Trash2, Pencil, Loader2, Upload, ClipboardCheck, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -74,6 +74,7 @@ export function JobsClient({
   const [editing, setEditing] = useState<Job | null>(null);
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
 
@@ -118,6 +119,9 @@ export function JobsClient({
           <option value="closed">Closed</option>
           <option value="archived">Archived</option>
         </Select>
+        <Button variant="outline" onClick={() => setGenerating(true)}>
+          <Wand2 className="h-4 w-4" /> Generate with AI
+        </Button>
         <Button variant="outline" onClick={copyPrompt}>
           {copied ? <ClipboardCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
           {copied ? "Copied!" : "Copy AI prompt"}
@@ -198,7 +202,70 @@ export function JobsClient({
         />
       )}
       {importing && <ImportJobsDialog onClose={() => setImporting(false)} />}
+      {generating && <GenerateJobsDialog onClose={() => setGenerating(false)} />}
     </div>
+  );
+}
+
+function GenerateJobsDialog({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [count, setCount] = useState(15);
+  const [focus, setFocus] = useState("");
+  const [publish, setPublish] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generate() {
+    setBusy(true); setError(null); setMsg(null);
+    try {
+      const res = await fetch("/api/ai/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count, focus: focus || undefined, publish }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+      setMsg(`Generated ${data.count} job(s)${publish ? " (published)" : " (as drafts)"}.`);
+      router.refresh();
+    } catch (e: any) {
+      setError(e?.message ?? "Generation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onClose={onClose} className="max-w-lg">
+      <DialogHeader><DialogTitle>Generate jobs with AI</DialogTitle></DialogHeader>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Uses your configured AI provider (AI APIs page) to create realistic remote jobs directly.
+      </p>
+      <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>How many</Label>
+            <Input type="number" value={count} onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value))))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Focus (optional)</Label>
+            <Input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="e.g. virtual assistant" />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
+          Publish immediately (uncheck to create as drafts)
+        </label>
+      </div>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      {msg && <p className="mt-2 text-sm text-green-600">{msg}</p>}
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>{msg ? "Done" : "Cancel"}</Button>
+        <Button onClick={generate} disabled={busy}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} Generate
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
