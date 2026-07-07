@@ -7,6 +7,9 @@ import {
   JobEligibility,
   JobWithStatus,
   RequirementCheck,
+  EmploymentType,
+  RemoteType,
+  JobDifficulty,
 } from "../types/jobs.types";
 import { MOCK_JOBS } from "../data/jobs";
 import { useUserStore } from "./userStore";
@@ -32,6 +35,62 @@ export const PARTIAL_JOB_LIMIT = 5;
 interface JobProgress {
   completedModules: number;
   passedQuizzes: number;
+}
+
+// Map a published DB `jobs` row (admin CMS) → the mobile Job shape. Fields the
+// CMS doesn't store get sensible defaults; jobs gate on certification / partial
+// unlock, so the requirement numbers here are informational only.
+const CATEGORY_EMOJI: Record<string, string> = {
+  "ai-content-writing": "✍️",
+  "virtual-assistant": "🗂️",
+  "customer-support": "🎧",
+  "social-media": "📱",
+  "prompt-engineering": "🧠",
+  "data-entry": "⌨️",
+  research: "🔎",
+};
+
+function mapDbJob(r: any): Job {
+  const created = r.created_at ?? new Date().toISOString();
+  const dbType = String(r.type ?? "remote");
+  const employmentType: EmploymentType =
+    dbType === "part_time" ? "part_time" : dbType === "freelance" ? "contract" : "full_time";
+  const remoteType: RemoteType = dbType === "hybrid" ? "hybrid" : "remote";
+  const diff = String(r.difficulty ?? "beginner");
+  const difficulty: JobDifficulty =
+    diff === "intermediate" ? "intermediate" : diff === "beginner" ? "beginner" : "advanced";
+  return {
+    id: String(r.id),
+    title: r.title ?? "Remote role",
+    company: r.company ?? "",
+    companyLogo: CATEGORY_EMOJI[r.category] ?? "💼",
+    categoryId: r.category ?? "general",
+    country: r.country ?? "Remote",
+    countryFlag: r.country_flag ?? "🌍",
+    salaryMin: Number(r.salary_min) || 0,
+    salaryMax: Number(r.salary_max) || 0,
+    salaryCurrency: r.salary_currency ?? "USD",
+    remoteType,
+    employmentType,
+    difficulty,
+    postedAt: created,
+    featured: false,
+    description: r.description ?? "",
+    responsibilities: [],
+    benefits: [],
+    companyDescription: "",
+    skills: [],
+    applicationDeadline: new Date(new Date(created).getTime() + 30 * 86400000).toISOString(),
+    requirements: {
+      requiredModuleIds: Array.isArray(r.required_course_ids) ? r.required_course_ids.map(String) : [],
+      requiredCourses: [],
+      minXP: Number(r.required_xp) || 0,
+      minLevel: Number(r.required_level) || 1,
+      minStreakDays: 0,
+      completionPercent: 100,
+      requiresFinalQuiz: false,
+    },
+  };
 }
 
 // ─── Pure eligibility engine (used by screens & components) ───────────────────
@@ -174,6 +233,22 @@ export const useJobStore = create<JobState>((set, get) => ({
   loadUserJobData: async (userId) => {
     set({ isLoading: true });
 
+    // Live jobs from the admin CMS (published). Falls back to MOCK_JOBS when the
+    // table is empty or unreachable so the Jobs tab is never blank.
+    let jobs: Job[] = get().jobs;
+    try {
+      const { data } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("status", "published")
+        .order("order_index", { ascending: true })
+        .order("created_at", { ascending: false });
+      const mapped = (data as any[])?.map(mapDbJob) ?? [];
+      if (mapped.length > 0) jobs = mapped;
+    } catch {
+      // keep MOCK_JOBS
+    }
+
     // Compute course/quiz progress from learning data (graceful on failure).
     let completedModules = 0;
     let passedQuizzes = 0;
@@ -250,6 +325,7 @@ export const useJobStore = create<JobState>((set, get) => ({
     }
 
     set({
+      jobs,
       progress: { completedModules, passedQuizzes },
       savedJobIds,
       applications,
