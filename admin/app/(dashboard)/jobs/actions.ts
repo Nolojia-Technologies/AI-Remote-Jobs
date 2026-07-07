@@ -36,3 +36,10 @@ export async function deleteJobAction(id: string) {
   await jobsService.remove(id, email);
   revalidatePath("/jobs");
 }
+
+export async function bulkImportJobsAction(rows: JobInput[]) {
+  const { email } = await requireAdmin();
+  const count = await jobsService.bulkInsert(rows, email);
+  revalidatePath("/jobs");
+  return count;
+}

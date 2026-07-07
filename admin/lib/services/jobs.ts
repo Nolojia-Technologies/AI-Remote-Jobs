@@ -74,6 +74,19 @@ export const jobsService = {
     return this.create({ ...(rest as JobInput), title: `${original.title} (Copy)`, status: "draft" }, adminEmail);
   },
 
+  /** Insert many jobs at once (bulk import). Returns the number created. */
+  async bulkInsert(rows: JobInput[], adminEmail: string): Promise<number> {
+    if (rows.length === 0) return 0;
+    const supabase = await createClient();
+    const stamp = Date.now().toString(36);
+    // jobs.id is a TEXT PK with no default — generate a unique id per row.
+    const payload = rows.map((r, i) => ({ id: `${slugify(r.title) || "job"}-${stamp}-${i}`, ...r }));
+    const { data, error } = await supabase.from("jobs").insert(payload as any).select("id");
+    if (error) throw error;
+    await logActivity({ email: adminEmail, action: "bulk_create", entity: "job", detail: `${payload.length} jobs` });
+    return (data ?? []).length;
+  },
+
   async count(status?: JobStatus): Promise<number> {
     const supabase = await createClient();
     let q = supabase.from("jobs").select("id", { count: "exact", head: true });

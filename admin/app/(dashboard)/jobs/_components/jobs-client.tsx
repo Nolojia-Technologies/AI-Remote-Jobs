@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, MoreHorizontal, Eye, EyeOff, Copy, Trash2, Pencil, Loader2 } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Eye, EyeOff, Copy, Trash2, Pencil, Loader2, Upload, ClipboardCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -15,7 +15,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { COUNTRIES } from "@/lib/constants";
 import { JOB_STATUS_LABELS, JOB_TYPE_LABELS } from "@/types/db";
 import type { Job, JobInput, JobStatus, JobType } from "@/types/db";
-import { createJobAction, updateJobAction, setJobStatusAction, duplicateJobAction, deleteJobAction } from "../actions";
+import { createJobAction, updateJobAction, setJobStatusAction, duplicateJobAction, deleteJobAction, bulkImportJobsAction } from "../actions";
+
+const JOB_TYPES = ["remote", "hybrid", "full_time", "part_time", "freelance"] as const;
+
+/** Copyable prompt: paste into Claude, set the count, get JSON back to import. */
+const JOB_IMPORT_PROMPT = `You are generating remote job listings for the "AI Remote Jobs" app. Output ONLY a valid JSON array — no markdown, no commentary. Each job must use exactly these fields:
+
+[
+  {
+    "title": "AI Content Writer",
+    "company": "Nova Labs",
+    "description": "Write SEO blog posts and product copy using AI tools.",
+    "salary_min": 400,
+    "salary_max": 900,
+    "salary_currency": "USD",
+    "country": "Kenya",
+    "country_flag": "🇰🇪",
+    "category": "ai-content-writing",
+    "type": "remote",
+    "difficulty": "beginner",
+    "application_url": "https://example.com/apply"
+  }
+]
+
+Field rules:
+- salary_min / salary_max: integers, MONTHLY amounts, salary_min < salary_max.
+- type: one of remote | hybrid | full_time | part_time | freelance.
+- difficulty: one of beginner | intermediate | advanced.
+- category (kebab-case): ai-content-writing, virtual-assistant, customer-support, social-media, prompt-engineering, data-entry, research (or a sensible new one).
+- country_flag: the emoji flag matching country.
+- application_url: a real-looking URL or null.
+- Make roles realistic and doable by AI-skilled remote workers in Kenya, Qatar, Africa and the global market.
+
+Generate 20 jobs.`;
 
 const STATUS_BADGE: Record<JobStatus, "success" | "muted" | "warning"> = {
   published: "success",
@@ -40,7 +73,20 @@ export function JobsClient({
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<Job | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(JOB_IMPORT_PROMPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked — surface the text so it can be copied manually
+      window.prompt("Copy the job-format prompt:", JOB_IMPORT_PROMPT);
+    }
+  }
 
   function applyFilters(next: { q?: string; status?: string }) {
     const params = new URLSearchParams();
@@ -72,6 +118,13 @@ export function JobsClient({
           <option value="closed">Closed</option>
           <option value="archived">Archived</option>
         </Select>
+        <Button variant="outline" onClick={copyPrompt}>
+          {copied ? <ClipboardCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy AI prompt"}
+        </Button>
+        <Button variant="outline" onClick={() => setImporting(true)}>
+          <Upload className="h-4 w-4" /> Import
+        </Button>
         <Button onClick={() => setCreating(true)}>
           <Plus className="h-4 w-4" /> New job
         </Button>
@@ -144,7 +197,80 @@ export function JobsClient({
           onClose={() => { setCreating(false); setEditing(null); }}
         />
       )}
+      {importing && <ImportJobsDialog onClose={() => setImporting(false)} />}
     </div>
+  );
+}
+
+function ImportJobsDialog({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [text, setText] = useState("");
+  const [publish, setPublish] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<number | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function doImport() {
+    setError(null);
+    let parsed: any;
+    try { parsed = JSON.parse(text); } catch { setError("Invalid JSON. Paste the array Claude returned."); return; }
+    const arr = Array.isArray(parsed) ? parsed : parsed.jobs;
+    if (!Array.isArray(arr)) { setError('Expected a JSON array (or { "jobs": [...] }).'); return; }
+
+    const rows: JobInput[] = arr.map((r: any) => ({
+      title: String(r.title ?? "").trim(),
+      company: String(r.company ?? "").trim(),
+      description: String(r.description ?? ""),
+      salary_min: Number(r.salary_min) || 0,
+      salary_max: Number(r.salary_max) || 0,
+      salary_currency: String(r.salary_currency ?? "USD"),
+      country: String(r.country ?? "Remote"),
+      country_flag: String(r.country_flag ?? "🌍"),
+      category: String(r.category ?? "general"),
+      type: (JOB_TYPES.includes(r.type) ? r.type : "remote") as JobType,
+      required_xp: Number(r.required_xp) || 0,
+      required_level: Number(r.required_level) || 1,
+      required_course_ids: Array.isArray(r.required_course_ids) ? r.required_course_ids : [],
+      difficulty: String(r.difficulty ?? "beginner"),
+      application_url: r.application_url ? String(r.application_url) : null,
+      status: (publish ? "published" : "draft") as JobStatus,
+    })).filter((r) => r.title && r.company);
+
+    if (rows.length === 0) { setError("No valid jobs found (each needs at least a title and company)."); return; }
+    startTransition(async () => {
+      const count = await bulkImportJobsAction(rows);
+      setResult(count);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open onClose={onClose} className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Import jobs</DialogTitle>
+      </DialogHeader>
+      <p className="mb-2 text-sm text-muted-foreground">
+        Click <strong>Copy AI prompt</strong>, paste it into Claude, set how many jobs you want, then paste the JSON it returns here.
+      </p>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="min-h-[240px] font-mono text-xs"
+        placeholder='[{"title":"AI Content Writer","company":"Nova Labs","description":"…","salary_min":400,"salary_max":900,"country":"Kenya","country_flag":"🇰🇪","category":"ai-content-writing","type":"remote","difficulty":"beginner"}]'
+      />
+      <label className="mt-3 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
+        Publish immediately (uncheck to import as drafts)
+      </label>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      {result != null && <p className="mt-2 text-sm text-green-600">Imported {result} job(s).</p>}
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>{result != null ? "Done" : "Cancel"}</Button>
+        <Button onClick={doImport} disabled={pending || !text.trim()}>
+          {pending && <Loader2 className="h-4 w-4 animate-spin" />} Import
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
