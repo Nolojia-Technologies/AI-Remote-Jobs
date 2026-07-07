@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "AI Remote Jobs",
   slug: "ai-home-jobs",
   owner: "shaun-2",
-  version: "1.0.6",
+  version: "1.0.7",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "aihustleacademy",
@@ -45,7 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    versionCode: 16,
+    versionCode: 17,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#2563EB",
