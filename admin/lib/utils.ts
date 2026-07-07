@@ -32,6 +32,20 @@ export function timeAgo(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/** Compact human duration since `iso` — e.g. "3mo", "12d", "5h". For tenure. */
+export function formatDuration(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 0) return "—";
+  const d = Math.floor(diff / 86400000);
+  if (d >= 365) { const y = Math.floor(d / 365); const mo = Math.floor((d % 365) / 30); return mo ? `${y}y ${mo}mo` : `${y}y`; }
+  if (d >= 30) return `${Math.floor(d / 30)}mo`;
+  if (d >= 1) return `${d}d`;
+  const h = Math.floor(diff / 3600000);
+  if (h >= 1) return `${h}h`;
+  return "today";
+}
+
 /** URL-safe slug from a title. */
 export function slugify(input: string): string {
   return input
