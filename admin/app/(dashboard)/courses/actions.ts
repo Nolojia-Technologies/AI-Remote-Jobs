@@ -39,3 +39,14 @@ export async function deleteCourseAction(id: string) {
   await coursesService.remove(id, email);
   revalidatePath("/courses");
 }
+
+export interface CourseImportItem extends CourseInput {
+  lessons?: { title: string; body?: string; duration_minutes?: number; xp_reward?: number }[];
+}
+
+export async function bulkImportCoursesAction(items: CourseImportItem[]) {
+  const { email } = await requireAdmin();
+  const result = await coursesService.bulkImport(items, email);
+  revalidatePath("/courses");
+  return result;
+}

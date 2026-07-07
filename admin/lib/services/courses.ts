@@ -84,6 +84,50 @@ export const coursesService = {
     await logActivity({ email: adminEmail, action: status, entity: "course", entityId: id });
   },
 
+  /**
+   * Bulk-import courses, each with a flat list of lessons. Lessons are created
+   * directly under the course (chapter_id = null), which the app renders as a
+   * sequential lesson list. Returns how many courses + lessons were created.
+   */
+  async bulkImport(
+    items: (CourseInput & { lessons?: { title: string; body?: string; duration_minutes?: number; xp_reward?: number }[] })[],
+    adminEmail: string
+  ): Promise<{ courses: number; lessons: number }> {
+    const supabase = await createClient();
+    let courses = 0;
+    let lessons = 0;
+    for (const item of items) {
+      const { lessons: lessonList = [], ...courseFields } = item;
+      if (!courseFields.title?.trim()) continue;
+      const course = await this.create(courseFields as CourseInput, adminEmail);
+      courses++;
+      const valid = lessonList.filter((l) => l?.title?.trim());
+      if (valid.length) {
+        const rows = valid.map((l, i) => {
+          const body = l.body ?? "";
+          return {
+            course_id: course.id,
+            chapter_id: null,
+            title: l.title,
+            type: "text",
+            body,
+            duration_minutes: l.duration_minutes ?? 5,
+            xp_reward: l.xp_reward ?? 15,
+            order_index: i,
+            status: courseFields.status ?? "draft",
+            character_count: body.length,
+            estimated_reading_minutes: Math.max(1, Math.ceil(body.length / 1000)),
+          };
+        });
+        const { error } = await supabase.from("cms_lessons").insert(rows as any);
+        if (error) throw error;
+        lessons += rows.length;
+      }
+    }
+    await logActivity({ email: adminEmail, action: "bulk_import", entity: "course", detail: `${courses} courses, ${lessons} lessons` });
+    return { courses, lessons };
+  },
+
   async remove(id: string, adminEmail: string): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase.from("courses").delete().eq("id", id);

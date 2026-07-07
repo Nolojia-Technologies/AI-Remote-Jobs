@@ -14,6 +14,9 @@ import {
   Trash2,
   Pencil,
   Loader2,
+  Upload,
+  Sparkles,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +35,40 @@ import {
   setCourseStatusAction,
   duplicateCourseAction,
   deleteCourseAction,
+  bulkImportCoursesAction,
 } from "../actions";
+
+/** Copyable prompt: paste into Claude, set the count, paste the JSON back to import. */
+const COURSE_IMPORT_PROMPT = `You are creating full courses for the "AI Remote Jobs" learning app. Output ONLY a valid JSON array — no markdown fences, no commentary. Each course object:
+
+[
+  {
+    "title": "AI Content Writing Fundamentals",
+    "description": "1–2 sentence summary of what the learner will achieve.",
+    "category": "ai-content-writing",
+    "difficulty": "beginner",
+    "estimated_hours": 3,
+    "xp_reward": 200,
+    "tags": ["writing", "ai", "freelancing"],
+    "lessons": [
+      {
+        "title": "Introduction to AI Writing",
+        "body": "Rich Markdown lesson. Use sections like ## Key concepts, ## Worked example, ## Case study, ## Exercise, ## Tips, ## Common mistakes, ## Resources.",
+        "duration_minutes": 6,
+        "xp_reward": 15
+      }
+    ]
+  }
+]
+
+Rules:
+- 5–8 lessons per course; each lesson body is 300–700 words of practical Markdown.
+- difficulty: one of beginner | intermediate | advanced | expert | master.
+- category: kebab-case (e.g. ai-content-writing, virtual-assistant, customer-support, social-media, prompt-engineering, data-entry, research).
+- Teach employable, real-world remote & freelancing skills for Kenya, Qatar, Africa and the global market. No fluff.
+- Output ONLY the JSON array.
+
+Generate 3 courses.`;
 
 const STATUS_BADGE: Record<CourseStatus, "success" | "muted" | "warning"> = {
   published: "success",
@@ -55,7 +91,19 @@ export function CoursesClient({
   const [q, setQ] = useState(query);
   const [pending, startTransition] = useTransition();
   const [openNew, setOpenNew] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(COURSE_IMPORT_PROMPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy the course-format prompt:", COURSE_IMPORT_PROMPT);
+    }
+  }
 
   function applyFilters(next: { q?: string; status?: string; sort?: string }) {
     const params = new URLSearchParams();
@@ -98,6 +146,13 @@ export function CoursesClient({
           <option value="newest">Newest</option>
           <option value="title">Title A–Z</option>
         </Select>
+        <Button variant="outline" onClick={copyPrompt}>
+          {copied ? <ClipboardCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy AI prompt"}
+        </Button>
+        <Button variant="outline" onClick={() => setImporting(true)}>
+          <Upload className="h-4 w-4" /> Import
+        </Button>
         <Button onClick={() => setOpenNew(true)}>
           <Plus className="h-4 w-4" />
           New course
@@ -186,7 +241,77 @@ export function CoursesClient({
       )}
 
       <NewCourseDialog open={openNew} onClose={() => setOpenNew(false)} />
+      {importing && <ImportCoursesDialog onClose={() => setImporting(false)} />}
     </div>
+  );
+}
+
+function ImportCoursesDialog({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [text, setText] = useState("");
+  const [publish, setPublish] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ courses: number; lessons: number } | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function doImport() {
+    setError(null);
+    let parsed: any;
+    try { parsed = JSON.parse(text); } catch { setError("Invalid JSON. Paste the array Claude returned."); return; }
+    const arr = Array.isArray(parsed) ? parsed : parsed.courses;
+    if (!Array.isArray(arr)) { setError('Expected a JSON array (or { "courses": [...] }).'); return; }
+
+    const DIFF = ["beginner", "intermediate", "advanced", "expert", "master"];
+    const items = arr.map((c: any) => ({
+      title: String(c.title ?? "").trim(),
+      description: String(c.description ?? ""),
+      category: String(c.category ?? "general"),
+      difficulty: (DIFF.includes(c.difficulty) ? c.difficulty : "beginner"),
+      estimated_hours: Number(c.estimated_hours) || 1,
+      xp_reward: Number(c.xp_reward) || 100,
+      tags: Array.isArray(c.tags) ? c.tags.map(String) : [],
+      status: publish ? "published" : "draft",
+      lessons: (Array.isArray(c.lessons) ? c.lessons : []).map((l: any) => ({
+        title: String(l.title ?? "").trim(),
+        body: String(l.body ?? ""),
+        duration_minutes: Number(l.duration_minutes) || 5,
+        xp_reward: Number(l.xp_reward) || 15,
+      })).filter((l: any) => l.title),
+    })).filter((c: any) => c.title);
+
+    if (items.length === 0) { setError("No valid courses found (each needs a title)."); return; }
+    startTransition(async () => {
+      const res = await bulkImportCoursesAction(items as any);
+      setResult(res);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open onClose={onClose} className="max-w-2xl">
+      <DialogHeader><DialogTitle>Import courses</DialogTitle></DialogHeader>
+      <p className="mb-2 text-sm text-muted-foreground">
+        Click <strong>Copy AI prompt</strong>, paste it into Claude, set how many courses you want, then paste the JSON it returns here. Each course + its lessons are created.
+      </p>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="min-h-[240px] font-mono text-xs"
+        placeholder='[{"title":"AI Content Writing","description":"…","category":"ai-content-writing","difficulty":"beginner","estimated_hours":3,"xp_reward":200,"tags":["ai"],"lessons":[{"title":"Intro","body":"## Key concepts\\n…","duration_minutes":6,"xp_reward":15}]}]'
+      />
+      <label className="mt-3 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
+        Publish immediately (recommended: leave off, review then publish)
+      </label>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      {result && <p className="mt-2 text-sm text-green-600">Imported {result.courses} course(s) and {result.lessons} lesson(s).</p>}
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>{result ? "Done" : "Cancel"}</Button>
+        <Button onClick={doImport} disabled={pending || !text.trim()}>
+          {pending && <Loader2 className="h-4 w-4 animate-spin" />} Import
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
