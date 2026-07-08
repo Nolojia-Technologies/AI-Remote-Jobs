@@ -52,7 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: "com.aihustleacademy.app",
     permissions: [
-      "NOTIFICATIONS",
+      "POST_NOTIFICATIONS",
       "RECEIVE_BOOT_COMPLETED",
       "VIBRATE",
     ],

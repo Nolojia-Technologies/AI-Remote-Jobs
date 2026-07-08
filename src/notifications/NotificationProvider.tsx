@@ -17,9 +17,12 @@ export function NotificationProvider() {
   const response = Notifications.useLastNotificationResponse();
   const handled = useRef<unknown>(null);
 
-  // Ensure the handler + Android channels exist as early as possible.
+  // Ensure the handler + Android channels exist as early as possible, and make
+  // sure we hold the POST_NOTIFICATIONS runtime permission (Android 13+). Only
+  // prompts when the status is undetermined, so it's safe to call every launch.
   useEffect(() => {
     NotificationService.configure();
+    NotificationService.requestPermission();
   }, []);
 
   useEffect(() => {
