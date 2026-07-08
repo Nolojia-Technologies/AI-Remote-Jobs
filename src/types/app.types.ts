@@ -137,7 +137,9 @@ export type XPSource =
   | "revision"
   | "revision_streak"
   | "revision_chest"
-  | "ad_bonus";
+  | "ad_bonus"
+  | "double_xp"
+  | "daily_spin";
 
 // ─── Leaderboard ───────────────────────────────────────────────────────────
 export interface LeaderboardEntry {

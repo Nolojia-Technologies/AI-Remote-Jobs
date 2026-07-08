@@ -52,6 +52,13 @@ export default function JobDetailScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
   const [showMilestone, setShowMilestone] = useState(false);
+  // Rewarded "reveal" gating: exact salary / company details / full requirements
+  // each unlock after an opt-in rewarded ad (revenue on high-intent job views).
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  async function reveal(field: "salary" | "company" | "requirements", trigger: "reveal_salary" | "reveal_company" | "reveal_requirements") {
+    const ok = await showRewarded(trigger);
+    if (ok) setRevealed((p) => new Set(p).add(field));
+  }
 
   const job = getJobWithStatus(id as string);
   const applicants = job ? getApplicants(job) : 0;
@@ -179,9 +186,16 @@ export default function JobDetailScreen() {
         <View className="flex-row gap-3 mb-5">
           <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-2xl p-3">
             <Text className="text-xs text-gray-500 dark:text-gray-400">Salary / month</Text>
-            <Text className="text-lg font-bold text-green-600 dark:text-green-400">
-              ${job.salaryMin.toLocaleString()}–${job.salaryMax.toLocaleString()}
-            </Text>
+            {revealed.has("salary") ? (
+              <Text className="text-lg font-bold text-green-600 dark:text-green-400">
+                ${job.salaryMin.toLocaleString()}–${job.salaryMax.toLocaleString()}
+              </Text>
+            ) : (
+              <TouchableOpacity onPress={() => reveal("salary", "reveal_salary")} activeOpacity={0.8}>
+                <Text className="text-lg font-bold text-green-600 dark:text-green-400">$•••–•••</Text>
+                <Text className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 mt-0.5">▶ Watch ad to reveal</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-2xl p-3">
             <View className="flex-row items-center gap-1">
@@ -251,7 +265,11 @@ export default function JobDetailScreen() {
 
         {/* Requirements */}
         <View className="mb-5">
-          <RequirementChecklist eligibility={eligibility} requiredCourses={job.requirements.requiredCourses} />
+          {revealed.has("requirements") ? (
+            <RequirementChecklist eligibility={eligibility} requiredCourses={job.requirements.requiredCourses} />
+          ) : (
+            <RevealCard label="Watch ad to see full requirements" onPress={() => reveal("requirements", "reveal_requirements")} />
+          )}
         </View>
 
         {/* XP source split — ads can only contribute a capped slice toward unlock */}
@@ -348,9 +366,13 @@ export default function JobDetailScreen() {
             <Building2 size={16} color="#9CA3AF" />
             <Text className="text-sm font-bold text-gray-900 dark:text-white">{job.company}</Text>
           </View>
-          <Text className="text-sm text-gray-600 dark:text-gray-400 leading-6">
-            {job.companyDescription}
-          </Text>
+          {revealed.has("company") ? (
+            <Text className="text-sm text-gray-600 dark:text-gray-400 leading-6">
+              {job.companyDescription}
+            </Text>
+          ) : (
+            <RevealCard label="Watch ad to reveal company details" onPress={() => reveal("company", "reveal_company")} />
+          )}
         </Section>
 
         {/* Rewarded ad */}
@@ -412,6 +434,19 @@ export default function JobDetailScreen() {
         />
       )}
     </SafeAreaView>
+  );
+}
+
+function RevealCard({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      className="flex-row items-center justify-center gap-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl py-3"
+    >
+      <Lock size={14} color="#8B5CF6" />
+      <Text className="text-sm font-bold text-purple-600 dark:text-purple-400">{label}</Text>
+    </TouchableOpacity>
   );
 }
 

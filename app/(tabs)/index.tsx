@@ -14,6 +14,7 @@ import { useGamificationStore } from "../../src/stores/gamificationStore";
 import { useJobStore } from "../../src/stores/jobStore";
 import { DashboardStats } from "../../src/components/home/DashboardStats";
 import { QuickActions } from "../../src/components/home/QuickActions";
+import { DailyXpSpin } from "../../src/components/home/DailyXpSpin";
 import { MotivationalCard } from "../../src/components/home/MotivationalCard";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { HomeJobsCard } from "../../src/components/home/HomeJobsCard";
@@ -101,6 +102,9 @@ export default function HomeScreen() {
             streak={profile.streak_days}
             rank={currentUserRank}
           />
+
+          {/* Daily rewarded XP spin */}
+          <DailyXpSpin />
 
           {/* Today's Revision — spaced repetition retention loop */}
           {(() => {

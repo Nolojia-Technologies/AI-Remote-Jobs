@@ -8,7 +8,7 @@ import { useUserStore } from "../../../src/stores/userStore";
 import { userCourseService } from "../../../src/services/userCourseService";
 import { Lesson } from "../../../src/types/content.types";
 import { useReadingProgress } from "../../../src/hooks/useReadingProgress";
-import { useRewardedAd } from "../../../src/hooks/useAds";
+import { useRewardedAd, useDoubleXp } from "../../../src/hooks/useAds";
 import { useCourseGateStore } from "../../../src/stores/courseGateStore";
 import { cooldownMsForLesson } from "../../../src/learning/courseGate";
 import { ContinueGateModal } from "../../../src/components/course/ContinueGateModal";
@@ -35,6 +35,7 @@ export default function LessonViewer() {
 
   // ── Continue gate (post-completion cooldown + rewarded-ad bypass) ──
   const showRewarded = useRewardedAd();
+  const doubleXp = useDoubleXp();
   const gateStore = useCourseGateStore();
   const [gate, setGate] = useState<{ cooldownUntil: number; nextLessonId: string | null; nextChapterId: string | null } | null>(null);
   useEffect(() => { gateStore.hydrate(); }, []);
@@ -97,7 +98,9 @@ export default function LessonViewer() {
     try {
       const ok = await reading.markComplete();
       if (!ok) return;
-      await awardXP(user.id, lesson.xp_reward || 15, "lesson_complete", `Lesson: ${lesson.title}`);
+      const xpEarned = lesson.xp_reward || 15;
+      await awardXP(user.id, xpEarned, "lesson_complete", `Lesson: ${lesson.title}`);
+      await doubleXp(user.id, xpEarned, `Double XP: ${lesson.title}`);
 
       const next = await findNextLesson();
       if (next) {

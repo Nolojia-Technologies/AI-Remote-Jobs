@@ -5,13 +5,21 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Trophy, XCircle, RefreshCw, BookOpen, ListChecks, Home } from "lucide-react-native";
 import { useCertificationStore } from "../../src/stores/certificationStore";
+import { useInterstitialMoment } from "../../src/hooks/useAds";
 
 export default function CertificationResult() {
   const router = useRouter();
   const { lastResult } = useCertificationStore();
+  const triggerInterstitial = useInterstitialMoment();
 
   const anim = useRef(new Animated.Value(0)).current;
   const passed = !!lastResult?.passed;
+
+  // On the way to the (now unlocked) jobs — show a celebration interstitial.
+  async function goToJobs() {
+    await triggerInterstitial("quiz_passed");
+    router.replace("/(tabs)/jobs" as any);
+  }
 
   // Nothing to show (e.g. deep-linked) → back to hub.
   useEffect(() => {
@@ -62,7 +70,7 @@ export default function CertificationResult() {
         </View>
 
         {passed ? (
-          <TouchableOpacity onPress={() => router.replace("/(tabs)/jobs" as any)} className="rounded-2xl bg-primary p-4 flex-row items-center justify-center gap-2 mb-3">
+          <TouchableOpacity onPress={goToJobs} className="rounded-2xl bg-primary p-4 flex-row items-center justify-center gap-2 mb-3">
             <BookOpen size={18} color="#FFFFFF" />
             <Text className="text-white font-bold">Browse unlocked jobs</Text>
           </TouchableOpacity>

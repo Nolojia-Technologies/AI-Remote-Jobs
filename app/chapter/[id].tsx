@@ -15,7 +15,7 @@ import { useUserStore } from "../../src/stores/userStore";
 import { useLearnStore } from "../../src/stores/learnStore";
 import { useProgressionStore } from "../../src/stores/progressionStore";
 import { useRevisionStore } from "../../src/stores/revisionStore";
-import { useRewardedAd, reportAdAction, useInterstitialMoment, useRewardedBonusXp } from "../../src/hooks/useAds";
+import { useRewardedAd, reportAdAction, useInterstitialMoment, useRewardedBonusXp, useDoubleXp } from "../../src/hooks/useAds";
 import { ProgressionEngine } from "../../src/learning/progressionEngine";
 import { PROGRESSION, STAGE_BY_ID } from "../../src/learning/config";
 import { XP_REWARDS } from "../../src/constants/xp";
@@ -59,6 +59,7 @@ export default function ChapterScreen() {
   const revision = useRevisionStore();
   const showRewarded = useRewardedAd();
   const triggerInterstitial = useInterstitialMoment();
+  const doubleXp = useDoubleXp();
   const grantBonusXp = useRewardedBonusXp();
 
   const [selectedLesson, setSelectedLesson] = useState<LessonWithProgress | null>(null);
@@ -214,8 +215,9 @@ export default function ChapterScreen() {
             xpReward={xpReward}
             lessonTitles={lessons.map((l) => l.title)}
             onSubmit={onQuizSubmit}
-            onPassed={() => {
+            onPassed={async () => {
               setShowQuiz(false);
+              if (user) await doubleXp(user.id, xpReward, `Double XP: Chapter ${chapter.chapterIndex}`);
               setCompleteModal(true);
             }}
             onAdRetry={async () => {
