@@ -76,15 +76,18 @@ export const AD_CONFIG = {
       dormant: 90 * SEC,
     } as Record<UserType, number>,
     // Daily caps by day-number since first use (power/whale override).
-    dailyByDay: { 1: 8, 2: 12, default: 15 },
-    powerDailyLimit: 20,
+    // Day 1 stays conservative (first impressions + policy); later days are
+    // higher now that the AI Tasks hub adds long earning sessions with many
+    // natural transition points. Cooldowns above are the real pacing control.
+    dailyByDay: { 1: 8, 2: 14, default: 18 },
+    powerDailyLimit: 25,
     // Max interstitials allowed by elapsed session time (cumulative).
     // 60+ min => unlimited (cooldown only).
     sessionCaps: [
       { upToMs: 5 * MIN, cap: 2 },
-      { upToMs: 15 * MIN, cap: 5 },
-      { upToMs: 30 * MIN, cap: 8 },
-      { upToMs: 60 * MIN, cap: 12 },
+      { upToMs: 15 * MIN, cap: 6 },
+      { upToMs: 30 * MIN, cap: 10 },
+      { upToMs: 60 * MIN, cap: 15 },
     ],
   },
   appOpen: {

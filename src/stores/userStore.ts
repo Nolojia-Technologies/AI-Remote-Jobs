@@ -32,6 +32,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       .single();
 
     if (!error && data) {
+      // Deactivated by an admin: end the session immediately (the auth ban
+      // blocks re-login; this handles a session that is already open).
+      if ((data as any).is_disabled) {
+        set({ profile: null, isLoading: false });
+        await supabase.auth.signOut();
+        return;
+      }
       set({ profile: data as Profile, isLoading: false });
     } else {
       set({ isLoading: false });

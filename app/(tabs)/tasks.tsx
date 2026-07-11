@@ -22,6 +22,7 @@ import {
 } from "../../src/constants/taskEconomy";
 import { TaskKind } from "../../src/types/tasks.types";
 import { JobInterstitialManager } from "../../src/ads/JobInterstitialManager";
+import { RewardedAdManager } from "../../src/ads/RewardedAdManager";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 import { LoadingSpinner } from "../../src/components/ui/LoadingSpinner";
@@ -39,10 +40,31 @@ export default function AiTasksScreen() {
   const { profile } = useUserStore();
   const earn = useEarnStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [boostBusy, setBoostBusy] = useState(false);
+  const [boostMsg, setBoostMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) earn.loadHub(user.id);
+    RewardedAdManager.preload();
   }, [user]);
+
+  // Rewarded "bonus batch": watch an ad → +BATCH_SIZE tasks on today's allowance.
+  const claimBonusBatch = async () => {
+    if (boostBusy) return;
+    setBoostBusy(true);
+    setBoostMsg(null);
+    const earned = await RewardedAdManager.show();
+    if (!earned) {
+      setBoostBusy(false);
+      setBoostMsg("Ad not ready yet — try again in a few seconds.");
+      setTimeout(() => setBoostMsg(null), 3000);
+      return;
+    }
+    const res = await earn.unlockBatch();
+    setBoostBusy(false);
+    setBoostMsg(res.ok ? `+${TASK_ECONOMY.BATCH_SIZE} tasks added to today's limit! 🎉` : res.error ?? null);
+    setTimeout(() => setBoostMsg(null), 3500);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -96,7 +118,7 @@ export default function AiTasksScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => router.push("/wallet" as any)}
+              onPress={() => JobInterstitialManager.openJob(() => router.push("/wallet" as any))}
               className="flex-row items-center gap-2 bg-primary-600 px-4 py-2.5 rounded-2xl"
               activeOpacity={0.85}
             >
@@ -234,6 +256,30 @@ export default function AiTasksScreen() {
           })}
         </View>
 
+        {/* Bonus batch — rewarded ad adds tasks to today's allowance */}
+        {summary.today.adBatches < TASK_ECONOMY.MAX_AD_BATCHES && (
+          <TouchableOpacity
+            onPress={claimBonusBatch}
+            disabled={boostBusy}
+            activeOpacity={0.85}
+            className="mx-5 mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-3xl p-4 flex-row items-center"
+          >
+            <View className="w-12 h-12 rounded-2xl bg-amber-400 items-center justify-center">
+              <Text className="text-2xl">🎬</Text>
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="text-base font-bold text-gray-900 dark:text-white">
+                {boostBusy ? "Loading ad…" : `Bonus batch: +${TASK_ECONOMY.BATCH_SIZE} tasks`}
+              </Text>
+              <Text className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                {boostMsg ??
+                  `Watch one short ad to raise today's task limit (${summary.today.adBatches}/${TASK_ECONOMY.MAX_AD_BATCHES} used)`}
+              </Text>
+            </View>
+            <Zap size={20} color="#F59E0B" fill="#F59E0B" />
+          </TouchableOpacity>
+        )}
+
         {/* Native ad — between categories and progression */}
         <View className="px-5 mt-4">
           <NativeAdCard />
@@ -274,7 +320,7 @@ export default function AiTasksScreen() {
         {/* Referral banner */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push("/referrals" as any)}
+          onPress={() => JobInterstitialManager.openJob(() => router.push("/referrals" as any))}
           className="mx-5 mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-3xl p-4 flex-row items-center"
         >
           <View className="w-12 h-12 rounded-2xl bg-emerald-500 items-center justify-center">

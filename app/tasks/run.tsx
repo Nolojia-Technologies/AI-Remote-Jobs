@@ -21,6 +21,8 @@ import {
 } from "../../src/constants/taskEconomy";
 import { generateCaptcha, sliderMatches, CaptchaPuzzle } from "../../src/data/aiTasksLocal";
 import { RewardedAdManager } from "../../src/ads/RewardedAdManager";
+import { InterstitialAdManager } from "../../src/ads/InterstitialAdManager";
+import { JobInterstitialManager } from "../../src/ads/JobInterstitialManager";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 
@@ -116,7 +118,13 @@ export default function TaskRunnerScreen() {
 
   useEffect(() => {
     RewardedAdManager.preload();
+    InterstitialAdManager.preload();
   }, []);
+
+  // Leaving the runner is a natural transition point → engine-gated interstitial.
+  const exitRunner = () => {
+    JobInterstitialManager.openJob(() => router.back());
+  };
 
   useEffect(() => {
     if (kind === "captcha" && captchaTask) {
@@ -143,11 +151,16 @@ export default function TaskRunnerScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSessionDone((n) => {
         const next = n + 1;
-        // Segment wall every BATCH_SIZE tasks in this session — rewarded ad to continue.
-        if (next % TASK_ECONOMY.BATCH_SIZE === 0) setWall("segment");
+        // Segment wall every AD_SEGMENT_SIZE tasks in-session — rewarded ad to continue.
+        if (next % TASK_ECONOMY.AD_SEGMENT_SIZE === 0) setWall("segment");
         return next;
       });
       setSessionCents((c) => c + cents);
+      // Finishing a survey is a larger unit of work → natural interstitial moment
+      // (still engine-gated by cooldowns and caps; never fires mid-question).
+      if (kind === "survey") {
+        setTimeout(() => JobInterstitialManager.openJob(() => {}), 1000);
+      }
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
@@ -247,13 +260,13 @@ export default function TaskRunnerScreen() {
   };
 
   const remainingToday = earn.tasksRemainingToday();
-  const segmentPos = sessionDone % TASK_ECONOMY.BATCH_SIZE;
+  const segmentPos = sessionDone % TASK_ECONOMY.AD_SEGMENT_SIZE;
 
   // ─── Header (shared) ───────────────────────────────────────
   const Header = (
     <View className="px-5 pt-2 pb-3 flex-row items-center justify-between">
       <TouchableOpacity
-        onPress={() => router.back()}
+        onPress={exitRunner}
         className="w-10 h-10 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800"
       >
         <X size={18} color="#6B7280" />
@@ -291,7 +304,7 @@ export default function TaskRunnerScreen() {
                 ? atAdCap
                   ? "Amazing hustle! You've maxed out today. Come back tomorrow for a fresh batch."
                   : `Come back tomorrow — or watch one short ad to unlock ${TASK_ECONOMY.BATCH_SIZE} more tasks now.`
-                : `You crushed ${TASK_ECONOMY.BATCH_SIZE} tasks. Watch one short ad to unlock the next batch.`}
+                : `You crushed ${TASK_ECONOMY.AD_SEGMENT_SIZE} tasks. Watch one short ad to unlock the next batch.`}
             </Text>
             <View className="flex-row gap-6 my-5">
               <View className="items-center">
@@ -324,7 +337,7 @@ export default function TaskRunnerScreen() {
                 )}
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={() => router.back()} className="mt-3 py-2">
+            <TouchableOpacity onPress={exitRunner} className="mt-3 py-2">
               <Text className="text-gray-500 dark:text-gray-400 font-semibold">
                 Back to AI Tasks
               </Text>
@@ -356,7 +369,7 @@ export default function TaskRunnerScreen() {
             drop regularly — check back soon.
           </Text>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={exitRunner}
             className="bg-primary-600 rounded-2xl py-3.5 px-8 mt-6"
           >
             <Text className="text-white font-bold">Back to AI Tasks</Text>

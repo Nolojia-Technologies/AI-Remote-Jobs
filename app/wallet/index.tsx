@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, View, Text, TouchableOpacity, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ChevronLeft, ArrowUpRight, Info } from "lucide-react-native";
+import { ChevronLeft, ArrowUpRight, Lock, Banknote } from "lucide-react-native";
 import { useAuthStore } from "../../src/stores/authStore";
 import { useEarnStore } from "../../src/stores/earnStore";
-import { formatCents, taskLevelProgress } from "../../src/constants/taskEconomy";
+import { formatCents, taskLevelProgress, TASK_ECONOMY } from "../../src/constants/taskEconomy";
+import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { WalletTransaction } from "../../src/types/tasks.types";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 import { EmptyState } from "../../src/components/ui/EmptyState";
@@ -133,14 +134,43 @@ export default function WalletScreen() {
               <Text className="text-white font-bold">{formatCents(w.lifetimeCents)}</Text>
             </View>
           </View>
-          <View className="mt-5 bg-white/10 rounded-2xl p-3 flex-row items-center gap-2">
-            <Info size={14} color="#9CA3AF" />
-            <Text className="text-gray-300 text-[11px] flex-1">
-              Withdrawals (M-Pesa & more) are coming soon. Keep earning — your balance is
-              safe and tracked.
-            </Text>
-          </View>
         </View>
+
+        {/* Withdrawal threshold — unlocks at $100 */}
+        {(() => {
+          const threshold = TASK_ECONOMY.WITHDRAWAL_THRESHOLD_CENTS;
+          const pct = Math.min(100, Math.round((w.balanceCents / threshold) * 100));
+          const eligible = w.balanceCents >= threshold;
+          return (
+            <View className="mx-5 mt-3 bg-white dark:bg-gray-800 rounded-3xl p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center gap-2">
+                  {eligible ? (
+                    <Banknote size={18} color="#10B981" />
+                  ) : (
+                    <Lock size={16} color="#9CA3AF" />
+                  )}
+                  <Text className="text-base font-bold text-gray-900 dark:text-white">
+                    Withdrawals unlock at {formatCents(threshold)}
+                  </Text>
+                </View>
+                <Text
+                  className={`text-sm font-bold ${
+                    eligible ? "text-emerald-500" : "text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {pct}%
+                </Text>
+              </View>
+              <ProgressBar progress={pct} height={10} color={eligible ? "#10B981" : "#2563EB"} />
+              <Text className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
+                {eligible
+                  ? "🎉 You've reached the withdrawal threshold! Payout methods (M-Pesa & more) are being finalized — you'll be notified the moment withdrawals open."
+                  : `Earn ${formatCents(threshold - w.balanceCents)} more to unlock withdrawals. Your balance is safe and every cent is tracked.`}
+              </Text>
+            </View>
+          );
+        })()}
 
         {/* Period stats */}
         <View className="mx-5 mt-3 flex-row gap-3">
@@ -225,7 +255,19 @@ export default function WalletScreen() {
               description="Complete your first AI task and your earnings will appear here."
             />
           ) : (
-            transactions.map((tx) => <TxRow key={tx.id} tx={tx} />)
+            <>
+              {transactions.slice(0, 6).map((tx) => (
+                <TxRow key={tx.id} tx={tx} />
+              ))}
+              {transactions.length > 3 && (
+                <View className="my-2">
+                  <NativeAdCard />
+                </View>
+              )}
+              {transactions.slice(6).map((tx) => (
+                <TxRow key={tx.id} tx={tx} />
+              ))}
+            </>
           )}
         </View>
       </ScrollView>

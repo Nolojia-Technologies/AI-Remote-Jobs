@@ -4,10 +4,15 @@
 
 export const TASK_ECONOMY = {
   FREE_DAILY_TASKS: 100,
-  BATCH_SIZE: 25,
+  BATCH_SIZE: 25, // server-side batch granted per rewarded-ad unlock
+  /** Rewarded-ad segment wall inside a session (smaller than BATCH_SIZE →
+   *  more rewarded views while ad-unlocks still grant a full 25 tasks). */
+  AD_SEGMENT_SIZE: 15,
   MAX_AD_BATCHES: 6,
   CAPTCHA_DAILY_CAP: 150,
   DAILY_GOAL_TASKS: 20, // soft goal shown on the dashboard
+  /** Minimum wallet balance before a withdrawal can be requested. */
+  WITHDRAWAL_THRESHOLD_CENTS: 10000, // $100
 } as const;
 
 /** Task levels — thresholds are lifetime approved tasks (mirrors get_task_level). */

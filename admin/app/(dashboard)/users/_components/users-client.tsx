@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Users as UsersIcon, Radio, Activity, UserPlus } from "lucide-react";
+import { Search, Users as UsersIcon, Radio, Activity, UserPlus, Loader2, Ban, RotateCcw, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDuration, timeAgo, formatNumber } from "@/lib/utils";
-import type { UserOverview, ActivityFilter, ActivityStats } from "@/lib/services/users";
+import type { UserOverview, ActivityFilter, ActivityStats, UserSort } from "@/lib/services/users";
+import { setUserDisabledAction } from "../actions";
 
 // Must mirror the windows in lib/services/users.ts (kept local so this client
 // component doesn't import the server-only service module).
@@ -24,23 +26,43 @@ function activityBadge(lastSeen: string | null): { label: string; variant: "succ
   return { label: "Inactive", variant: "muted" };
 }
 
+const usd = (cents: number) => `$${((cents || 0) / 100).toFixed(2)}`;
+
 export function UsersClient({
-  users, stats, query, filter,
+  users, stats, query, filter, sort,
 }: {
   users: UserOverview[];
   stats: ActivityStats;
   query: string;
   filter: ActivityFilter;
+  sort: UserSort;
 }) {
   const router = useRouter();
   const [q, setQ] = useState(query);
+  const [pending, startTransition] = useTransition();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  function apply(next: { q?: string; filter?: string }) {
+  function apply(next: { q?: string; filter?: string; sort?: string }) {
     const params = new URLSearchParams();
-    const merged = { q, filter, ...next };
+    const merged = { q, filter, sort, ...next };
     if (merged.q) params.set("q", merged.q);
     if (merged.filter && merged.filter !== "all") params.set("filter", merged.filter);
+    if (merged.sort && merged.sort !== "recent") params.set("sort", merged.sort);
     router.push(`/users?${params.toString()}`);
+  }
+
+  function toggleDisabled(u: UserOverview) {
+    const verb = u.is_disabled ? "Reactivate" : "Deactivate";
+    if (!confirm(`${verb} ${u.full_name || u.email || "this user"}? ${u.is_disabled ? "They will be able to sign in again." : "They will be blocked from signing in and their session will end."}`)) return;
+    setBusyId(u.id);
+    startTransition(async () => {
+      try {
+        await setUserDisabledAction(u.id, !u.is_disabled);
+      } finally {
+        setBusyId(null);
+        router.refresh();
+      }
+    });
   }
 
   const tiles = [
@@ -71,11 +93,16 @@ export function UsersClient({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…" className="pl-8" />
         </form>
-        <Select value={filter} onChange={(e) => apply({ filter: e.target.value })} className="sm:w-48">
+        <Select value={filter} onChange={(e) => apply({ filter: e.target.value })} className="sm:w-44">
           <option value="all">All users</option>
           <option value="live">Live now (15m)</option>
           <option value="active">Active (7 days)</option>
           <option value="inactive">Inactive</option>
+          <option value="disabled">Deactivated</option>
+        </Select>
+        <Select value={sort} onChange={(e) => apply({ sort: e.target.value })} className="sm:w-44">
+          <option value="recent">Most recent</option>
+          <option value="earners">🏆 Top earners</option>
         </Select>
       </div>
 
@@ -85,31 +112,62 @@ export function UsersClient({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
-              <TableHead className="hidden sm:table-cell">Country</TableHead>
-              <TableHead>Level</TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  {sort === "earners" && <Trophy className="h-3.5 w-3.5 text-amber-500" />} Earned
+                </span>
+              </TableHead>
+              <TableHead className="hidden lg:table-cell">Balance</TableHead>
+              <TableHead className="hidden sm:table-cell">Level</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden sm:table-cell">Last active</TableHead>
-              <TableHead className="hidden md:table-cell">Using for</TableHead>
+              <TableHead className="hidden lg:table-cell">Using for</TableHead>
+              <TableHead className="w-28"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">No users match.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">No users match.</TableCell></TableRow>
             )}
-            {users.map((u) => {
+            {users.map((u, i) => {
               const badge = activityBadge(u.last_seen);
               return (
-                <TableRow key={u.id}>
+                <TableRow key={u.id} className={u.is_disabled ? "opacity-60" : ""}>
                   <TableCell className="font-medium">
-                    {u.full_name || "—"} {u.is_admin && <Badge variant="secondary" className="ml-1">Admin</Badge>}
+                    {sort === "earners" && i < 3 && <span className="mr-1">{["🥇", "🥈", "🥉"][i]}</span>}
+                    {u.full_name || "—"}
+                    {u.is_admin && <Badge variant="secondary" className="ml-1">Admin</Badge>}
+                    {u.is_disabled && <Badge variant="warning" className="ml-1">Deactivated</Badge>}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">{u.email || "—"}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-muted-foreground">{u.country || "—"}</TableCell>
-                  <TableCell>{u.level ?? 1}</TableCell>
+                  <TableCell className={u.lifetime_cents > 0 ? "font-semibold text-green-600" : "text-muted-foreground"}>
+                    {usd(u.lifetime_cents)}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">{usd(u.balance_cents)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{u.level ?? 1}</TableCell>
                   <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground">{u.last_seen ? timeAgo(u.last_seen) : "never"}</TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground" title={`Joined ${new Date(u.created_at).toLocaleDateString()}`}>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground" title={`Joined ${new Date(u.created_at).toLocaleDateString()}`}>
                     {formatDuration(u.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    {!u.is_admin && (
+                      <Button
+                        variant={u.is_disabled ? "outline" : "ghost"}
+                        size="sm"
+                        disabled={pending && busyId === u.id}
+                        onClick={() => toggleDisabled(u)}
+                        className={u.is_disabled ? "" : "text-destructive hover:text-destructive"}
+                      >
+                        {pending && busyId === u.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : u.is_disabled ? (
+                          <><RotateCcw className="h-3.5 w-3.5" /> Reactivate</>
+                        ) : (
+                          <><Ban className="h-3.5 w-3.5" /> Deactivate</>
+                        )}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );

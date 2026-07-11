@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
+import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { ChevronLeft, Copy, Share2, Check } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -206,6 +207,11 @@ export default function ReferralCenterScreen() {
               {applyMsg.text}
             </Text>
           )}
+        </View>
+
+        {/* Native ad — bottom of referral center */}
+        <View className="mx-5 mt-4">
+          <NativeAdCard />
         </View>
       </ScrollView>
     </SafeAreaView>
