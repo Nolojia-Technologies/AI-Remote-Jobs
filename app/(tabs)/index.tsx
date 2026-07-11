@@ -11,13 +11,13 @@ import { TouchableOpacity } from "react-native";
 import { useAuthStore } from "../../src/stores/authStore";
 import { useUserStore } from "../../src/stores/userStore";
 import { useGamificationStore } from "../../src/stores/gamificationStore";
-import { useJobStore } from "../../src/stores/jobStore";
+import { useEarnStore } from "../../src/stores/earnStore";
 import { DashboardStats } from "../../src/components/home/DashboardStats";
 import { QuickActions } from "../../src/components/home/QuickActions";
 import { DailyXpSpin } from "../../src/components/home/DailyXpSpin";
 import { MotivationalCard } from "../../src/components/home/MotivationalCard";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
-import { HomeJobsCard } from "../../src/components/home/HomeJobsCard";
+import { HomeEarnCard } from "../../src/components/home/HomeEarnCard";
 import { RevisionCenterCard } from "../../src/components/revision/RevisionCenterCard";
 import { useRevisionStore } from "../../src/stores/revisionStore";
 import { RevisionEngine } from "../../src/revision/revisionEngine";
@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const { profile, fetchProfile, recordDailyLogin } = useUserStore();
   const { fetchLeaderboard, leaderboard } = useGamificationStore();
-  const { loadUserJobData, getAllWithStatus } = useJobStore();
+  const { loadHub } = useEarnStore();
   const revision = useRevisionStore();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -38,7 +38,7 @@ export default function HomeScreen() {
     await Promise.all([
       profile ? Promise.resolve() : fetchProfile(user.id),
       fetchLeaderboard("global", user.id),
-      loadUserJobData(user.id),
+      loadHub(user.id),
       revision.hydrated ? Promise.resolve() : revision.hydrate(user.id),
       recordDailyLogin(user.id),
     ]);
@@ -118,8 +118,8 @@ export default function HomeScreen() {
             return <RevisionCenterCard dueCount={due.length} weakCount={weak} xpAvailable={xp} estMinutes={est} />;
           })()}
 
-          {/* Remote Jobs — flagship retention card */}
-          <HomeJobsCard jobs={getAllWithStatus()} />
+          {/* AI Tasks — flagship retention card */}
+          <HomeEarnCard />
 
           {/* Quick Actions */}
           <QuickActions />

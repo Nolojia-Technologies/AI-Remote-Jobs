@@ -89,7 +89,7 @@ export default function CertificationHub() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />}
         >
           {status?.is_job_ready ? (
-            <JobReadyDashboard status={status} profile={profile} onViewJobs={() => router.push("/(tabs)/jobs" as any)} />
+            <JobReadyDashboard status={status} profile={profile} onViewJobs={() => router.push("/(tabs)/tasks" as any)} />
           ) : (
             <>
               <JourneyTracker status={status} />

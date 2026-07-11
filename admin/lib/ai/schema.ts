@@ -130,3 +130,30 @@ export type JobGenOutput = z.infer<typeof jobGenSchema>;
 // ─── Improve / translate ─────────────────────────────────────────────────────
 export const textSchema = z.object({ title: z.string().optional(), body: z.string() });
 export type TextOutput = z.infer<typeof textSchema>;
+
+// ─── AI Tasks (earning hub) generation ───────────────────────────────────────
+export const aiTaskGenSchema = z.object({
+  tasks: z
+    .array(
+      z.object({
+        kind: z.enum(["microtask", "annotation", "survey"]).default("microtask"),
+        category: z.string().default("text_classification"),
+        title: z.string(),
+        description: z.string().default(""),
+        difficulty: z.enum(["easy", "medium", "hard"]).default("easy"),
+        reward_cents: z.number().default(2),
+        xp: z.number().default(3),
+        est_seconds: z.number().default(20),
+        question: z.string().default(""),
+        options: z.array(z.string()).default([]),
+        correct_option: z.number().nullable().default(null),
+        survey_questions: z
+          .array(z.object({ q: z.string(), options: z.array(z.string()) }))
+          .nullable()
+          .default(null),
+        min_task_level: z.number().default(1),
+      })
+    )
+    .min(1),
+});
+export type AiTaskGenOutput = z.infer<typeof aiTaskGenSchema>;

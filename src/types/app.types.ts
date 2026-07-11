@@ -139,7 +139,8 @@ export type XPSource =
   | "revision_chest"
   | "ad_bonus"
   | "double_xp"
-  | "daily_spin";
+  | "daily_spin"
+  | "ai_task";
 
 // ─── Leaderboard ───────────────────────────────────────────────────────────
 export interface LeaderboardEntry {

@@ -423,7 +423,7 @@ Generated with AI Remote Jobs`;
             <TouchableOpacity
               onPress={() => {
                 setShowSuccess(false);
-                router.replace("/(tabs)/jobs");
+                router.replace("/(tabs)/tasks" as any);
                 interstitialAfterLeaving();
               }}
               className="mt-3"

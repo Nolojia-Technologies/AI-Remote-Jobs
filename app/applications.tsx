@@ -88,7 +88,7 @@ export default function ApplicationsScreen() {
               title="No Applications Yet"
               description="Unlock jobs by completing courses, then apply to start your remote career."
               actionLabel="Browse Jobs"
-              onAction={() => router.replace("/(tabs)/jobs")}
+              onAction={() => router.replace("/(tabs)/tasks" as any)}
             />
           ) : (
             applications.map((app) => {
@@ -134,7 +134,7 @@ export default function ApplicationsScreen() {
               title="No Saved Jobs"
               description="Tap the bookmark icon on any job to save it for later."
               actionLabel="Browse Jobs"
-              onAction={() => router.replace("/(tabs)/jobs")}
+              onAction={() => router.replace("/(tabs)/tasks" as any)}
             />
           ) : (
             savedJobs.map((job) => (

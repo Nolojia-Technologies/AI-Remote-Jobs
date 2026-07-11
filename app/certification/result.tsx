@@ -18,7 +18,7 @@ export default function CertificationResult() {
   // On the way to the (now unlocked) jobs — show a celebration interstitial.
   async function goToJobs() {
     await triggerInterstitial("quiz_passed");
-    router.replace("/(tabs)/jobs" as any);
+    router.replace("/(tabs)/tasks" as any);
   }
 
   // Nothing to show (e.g. deep-linked) → back to hub.

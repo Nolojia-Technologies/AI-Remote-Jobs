@@ -10,7 +10,9 @@ import { NotificationService } from "../notifications/NotificationService";
 function pathToScreen(path: string): AdScreen {
   const p = path.toLowerCase();
   if (p === "/" || p === "/index") return "home";
-  if (p.startsWith("/jobs")) return "jobs";
+  if (p.startsWith("/jobs") || p === "/tasks") return "jobs";
+  // Never interrupt an active task run with engine-driven ads.
+  if (p.startsWith("/tasks/")) return "quiz";
   if (p.startsWith("/learn")) return "learn";
   // Protect the timed certification quiz/result/review from ads; hub = normal tab.
   if (p.startsWith("/certification/")) return "quiz";

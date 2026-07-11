@@ -19,6 +19,8 @@ import {
   Shield,
   Brain,
   CalendarDays,
+  Wallet,
+  Gift,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -171,6 +173,18 @@ export default function ProfileScreen() {
         {/* Menu Items */}
         <View className="mx-5 mt-5 bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
           {[
+            {
+              icon: Wallet,
+              label: "Wallet & Earnings",
+              onPress: () => router.push("/wallet" as any),
+              color: "#059669",
+            },
+            {
+              icon: Gift,
+              label: "Referral Center",
+              onPress: () => router.push("/referrals" as any),
+              color: "#10B981",
+            },
             {
               icon: Award,
               label: "My Certificates",

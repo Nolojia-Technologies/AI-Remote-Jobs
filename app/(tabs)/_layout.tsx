@@ -1,7 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Platform, View } from "react-native";
-import { Home, BookOpen, ShieldCheck, User, Briefcase, LucideProps } from "lucide-react-native";
+import { Home, BookOpen, User, CircleDollarSign, LucideProps } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StickyBanner } from "../../src/components/ads/StickyBanner";
@@ -81,23 +81,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="jobs"
+        name="tasks"
         options={{
-          title: "Jobs",
+          title: "AI Tasks",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon icon={Briefcase} color={color} focused={focused} />
+            <TabIcon icon={CircleDollarSign} color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="certification"
-        options={{
-          title: "Certify",
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon icon={ShieldCheck} color={color} focused={focused} />
-          ),
-        }}
-      />
+      {/* Certification stays routable (home/learn link to it) but off the tab bar. */}
+      <Tabs.Screen name="certification" options={{ href: null }} />
       <Tabs.Screen
         name="profile"
         options={{

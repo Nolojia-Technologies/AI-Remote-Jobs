@@ -14,7 +14,7 @@ function isSafePath(path: string): boolean {
     p === "/" ||
     p === "/index" ||
     p === "/learn" ||
-    p === "/jobs" ||
+    p === "/tasks" ||
     p === "/certification" ||
     p === "/profile"
   );

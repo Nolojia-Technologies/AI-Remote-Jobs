@@ -16,6 +16,7 @@ import {
   GraduationCap,
   KeyRound,
   ShieldCheck,
+  CircleDollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/courses", label: "Courses", icon: BookOpen },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/ai-tasks", label: "AI Tasks", icon: CircleDollarSign },
   { href: "/certification", label: "Certification", icon: ShieldCheck },
   { href: "/ai", label: "AI Generation", icon: Sparkles },
   { href: "/ai-apis", label: "AI APIs", icon: KeyRound },

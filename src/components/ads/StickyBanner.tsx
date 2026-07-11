@@ -9,6 +9,8 @@ function pathToScreen(path: string): AdScreen {
   const p = (path || "").toLowerCase();
   if (p === "/" || p === "" || p.endsWith("/index")) return "home";
   if (p.includes("/jobs")) return "jobs";
+  if (p.includes("/tasks/")) return "quiz"; // no banners while actively completing tasks
+  if (p.includes("/tasks")) return "jobs";
   if (p.includes("/certification/")) return "quiz"; // protect the timed quiz from banners
   if (p.includes("/certification")) return "learn";
   if (p.includes("/profile")) return "profile";
