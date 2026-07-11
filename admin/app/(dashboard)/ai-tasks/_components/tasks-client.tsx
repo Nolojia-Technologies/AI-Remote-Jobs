@@ -29,7 +29,21 @@ const STATUS_BADGE: Record<AiTaskStatus, "success" | "muted" | "warning"> = {
   published: "success", draft: "muted", paused: "warning", archived: "warning",
 };
 
-const TASK_IMPORT_PROMPT = `You are generating earning micro-tasks for the "AI Tasks" hub of the AI Remote Jobs app. Output ONLY a valid JSON array — no markdown. Each item:
+const MICRO_CATEGORIES = "sentiment_analysis, text_classification, intent_classification, prompt_evaluation, chatbot_evaluation, response_rating, ocr_correction, translation_validation";
+const ANNOTATION_CATEGORIES = "image_labeling, object_detection, emotion_labeling, entity_recognition, document_classification";
+
+/** Build a copy-paste prompt for an external AI. Its JSON output feeds the Import dialog. */
+function buildTaskPrompt(kind: string, count: number, focus: string): string {
+  const kindRules =
+    kind === "microtask"
+      ? `- Every task: "kind": "microtask". Categories to mix: ${MICRO_CATEGORIES}.\n- Each needs "question", 2–4 "options" and "correct_option" (0-based index of the ONE objectively correct option). Set "survey_questions": null.`
+      : kind === "annotation"
+        ? `- Every task: "kind": "annotation". Categories to mix: ${ANNOTATION_CATEGORIES}.\n- Describe images using emoji inside the question (e.g. "Which animal is shown? 🐘").\n- Each needs "question", 2–4 "options" and "correct_option" (0-based, objectively correct). Set "survey_questions": null.`
+        : kind === "survey"
+          ? `- Every task: "kind": "survey", "category": "survey". Set "question": "", "options": [], "correct_option": null.\n- Provide "survey_questions": an array of 3–6 opinion questions, each { "q": "...", "options": ["...", "..."] } with NO correct answer.\n- Surveys pay more: reward_cents 8–20, est_seconds 60–180.`
+          : `- Mix kinds: ~60% "microtask" (${MICRO_CATEGORIES}), ~30% "annotation" (${ANNOTATION_CATEGORIES}, describe images with emoji in the question), ~10% "survey" ("category": "survey").\n- microtask/annotation: "question" + 2–4 "options" + "correct_option" (0-based, objectively correct), "survey_questions": null.\n- survey: "question": "", "options": [], "correct_option": null, and "survey_questions": [{ "q", "options" }] (3–6 items).`;
+
+  return `You are generating earning micro-tasks for the "AI Tasks" hub of the AI Remote Jobs app, where users earn small cash rewards for helping improve AI systems. Output ONLY a valid JSON array — no markdown, no commentary. Each item uses exactly these fields:
 
 [
   {
@@ -49,14 +63,18 @@ const TASK_IMPORT_PROMPT = `You are generating earning micro-tasks for the "AI T
   }
 ]
 
-Rules:
-- kind: microtask | annotation | survey.
-- microtask/annotation need question + 2–4 options + correct_option (0-based, objectively correct).
-- survey: set correct_option null and provide survey_questions: [{ "q": "...", "options": [...] }] (3–6 questions).
-- reward_cents 1–20, xp 2–10, est_seconds realistic.
-- Questions must be self-contained and unambiguous.
+Kind rules:
+${kindRules}
 
-Generate 20 tasks.`;
+General rules:
+- "difficulty": easy | medium | hard. Rewards: easy 1–3 reward_cents, medium 3–6, hard 6–12. "xp": 2–10. "est_seconds": realistic (10–60; surveys up to 180).
+- "min_task_level": mostly 1; use 2–3 for the hardest/highest-paying tasks (levels unlock as users complete more tasks).
+- Every question must be SELF-CONTAINED, unambiguous, and answerable by anyone without external context. The correct option must be objectively correct — never a matter of opinion (except surveys).
+- Vary the wording — never repeat the same question or scenario twice.
+- Audience: AI-skilled earners in Kenya, Qatar and the global remote market. Swahili/Arabic/French translation-validation tasks are welcome.${focus ? `\n- Theme/focus for this batch: ${focus}.` : ""}
+
+Generate exactly ${count} tasks.`;
+}
 
 export function AiTasksClient({
   initialTasks, query, status, kind,
@@ -73,18 +91,8 @@ export function AiTasksClient({
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [prompting, setPrompting] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
-
-  async function copyPrompt() {
-    try {
-      await navigator.clipboard.writeText(TASK_IMPORT_PROMPT);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      window.prompt("Copy the task-format prompt:", TASK_IMPORT_PROMPT);
-    }
-  }
 
   function applyFilters(next: { q?: string; status?: string; kind?: string }) {
     const params = new URLSearchParams();
@@ -124,9 +132,8 @@ export function AiTasksClient({
         <Button variant="outline" onClick={() => setGenerating(true)}>
           <Wand2 className="h-4 w-4" /> Generate with AI
         </Button>
-        <Button variant="outline" onClick={copyPrompt}>
-          {copied ? <ClipboardCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-          {copied ? "Copied!" : "Copy AI prompt"}
+        <Button variant="outline" onClick={() => setPrompting(true)}>
+          <Sparkles className="h-4 w-4" /> AI Prompts
         </Button>
         <Button variant="outline" onClick={() => setImporting(true)}>
           <Upload className="h-4 w-4" /> Import
@@ -217,7 +224,75 @@ export function AiTasksClient({
       )}
       {importing && <ImportTasksDialog onClose={() => setImporting(false)} />}
       {generating && <GenerateTasksDialog onClose={() => setGenerating(false)} />}
+      {prompting && (
+        <PromptsDialog
+          onClose={() => setPrompting(false)}
+          onGoToImport={() => { setPrompting(false); setImporting(true); }}
+        />
+      )}
     </div>
+  );
+}
+
+function PromptsDialog({ onClose, onGoToImport }: { onClose: () => void; onGoToImport: () => void }) {
+  const [kind, setKind] = useState("mixed");
+  const [count, setCount] = useState(20);
+  const [focus, setFocus] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const prompt = buildTaskPrompt(kind, count, focus);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked — the textarea below can be copied manually
+    }
+  }
+
+  return (
+    <Dialog open onClose={onClose} className="max-w-3xl">
+      <DialogHeader><DialogTitle>AI prompts — generate tasks with any AI</DialogTitle></DialogHeader>
+      <p className="mb-3 text-sm text-muted-foreground">
+        1. Pick the task type and copy the prompt. 2. Paste it into Claude/ChatGPT.
+        3. Paste the JSON it returns into <strong>Import</strong> — tasks go live in the app instantly.
+      </p>
+      <div className="mb-3 grid grid-cols-3 gap-3">
+        <div className="space-y-1.5">
+          <Label>Task type</Label>
+          <Select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="mixed">🎲 Mixed batch</option>
+            <option value="microtask">🤖 AI micro tasks</option>
+            <option value="annotation">🏷️ Data annotation</option>
+            <option value="survey">📋 Surveys</option>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>How many</Label>
+          <Input type="number" value={count} onChange={(e) => setCount(Math.min(100, Math.max(1, Number(e.target.value) || 1)))} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Focus (optional)</Label>
+          <Input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="e.g. Swahili translations" />
+        </div>
+      </div>
+      <Textarea readOnly value={prompt} className="min-h-[260px] font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+      <p className="mt-2 text-xs text-muted-foreground">
+        Note: captcha tasks aren't generated this way — they're on-device generators managed under <strong>New task → captcha</strong>.
+      </p>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Close</Button>
+        <Button variant="outline" onClick={onGoToImport}>
+          <Upload className="h-4 w-4" /> Open Import
+        </Button>
+        <Button onClick={copy}>
+          {copied ? <ClipboardCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy prompt"}
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
