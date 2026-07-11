@@ -19,7 +19,22 @@
       "PowerShell(eas build:list *)",
       "PowerShell(Get-ChildItem *)",
       "PowerShell(Push-Location *)",
-      "PowerShell(eas project:info *)"
+      "PowerShell(eas project:info *)",
+      "PowerShell(npx eas-cli --version; Write-Output \"---whoami---\"; npx eas-cli whoami)",
+      "PowerShell(npx eas-cli build --platform android --profile production --non-interactive)",
+      "PowerShell(npx eas-cli build:list --platform android --limit 1 --non-interactive --json 2>$null | ConvertFrom-Json | Select-Object id, status, appVersion, appBuildVersion | Format-List)",
+      "PowerShell(npx eas-cli build:cancel 55fd7874-1006-4f4b-a444-47407bc90594 --non-interactive)",
+      "PowerShell(npx eas-cli whoami)",
+      "PowerShell(npx eas-cli build --platform android --profile production --non-interactive --no-wait)",
+      "PowerShell(npx eas-cli credentials --help)",
+      "Bash(git push *)",
+      "Bash(npx tsc *)",
+      "Bash(timeout 300 npm run build)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"3001 login HTTP %{http_code}\\\\n\" \"http://localhost:3001/login\" --max-time 30)",
+      "Bash(powershell -Command \"Stop-Process -Id 8164 -Force -ErrorAction SilentlyContinue; Write-Output 'done'\")",
+      "Bash(node scripts/run-sql.mjs -q \"select table_name from information_schema.tables where table_schema='public' order by table_name\")"
     ]
   }
 }

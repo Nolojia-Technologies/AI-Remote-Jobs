@@ -2,7 +2,7 @@ import React from "react";
 import { ScrollView, View, Text, TouchableOpacity, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ChevronLeft, ExternalLink, Mail, Globe, Phone } from "lucide-react-native";
+import { ChevronLeft, ExternalLink, Mail } from "lucide-react-native";
 import { useTheme } from "../../src/theme";
 import {
   PRIVACY_INTRO,
@@ -106,9 +106,7 @@ export default function PrivacyPolicyScreen() {
           <Text style={{ color: colors.textPrimary }} className="text-sm font-bold mb-3">
             {PRIVACY_CONTACT.org}
           </Text>
-          <ContactRow icon={Globe} label={PRIVACY_CONTACT.website} onPress={() => Linking.openURL(PRIVACY_CONTACT.website)} colors={colors} />
           <ContactRow icon={Mail} label={PRIVACY_CONTACT.email} onPress={() => Linking.openURL(`mailto:${PRIVACY_CONTACT.email}`)} colors={colors} />
-          <ContactRow icon={Phone} label={PRIVACY_CONTACT.phone} onPress={() => Linking.openURL(`tel:${PRIVACY_CONTACT.phone.replace(/\s/g, "")}`)} colors={colors} />
         </View>
 
         {/* View online */}

@@ -17,7 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Mail, Lock } from "lucide-react-native";
 import { Button } from "../../src/components/ui/Button";
 import { Input } from "../../src/components/ui/Input";
-import { GoogleAuthButton } from "../../src/components/auth/GoogleAuthButton";
+// import { GoogleAuthButton } from "../../src/components/auth/GoogleAuthButton"; // temporarily hidden
 import { useAuthStore } from "../../src/stores/authStore";
 import { logEvent, AnalyticsEvents } from "../../src/lib/analytics";
 
@@ -126,7 +126,8 @@ export default function LoginScreen() {
               size="lg"
             />
 
-            <GoogleAuthButton mode="login" />
+            {/* Google sign-in button temporarily hidden (functionality preserved in GoogleAuthButton) */}
+            {/* <GoogleAuthButton mode="login" /> */}
 
             <View className="flex-row justify-center mt-8 mb-4">
               <Text className="text-gray-500 dark:text-gray-400">Don't have an account? </Text>

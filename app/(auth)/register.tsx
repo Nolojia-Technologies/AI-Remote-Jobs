@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, User, Mail, Lock } from "lucide-react-native";
 import { Button } from "../../src/components/ui/Button";
 import { Input } from "../../src/components/ui/Input";
-import { GoogleAuthButton } from "../../src/components/auth/GoogleAuthButton";
+// import { GoogleAuthButton } from "../../src/components/auth/GoogleAuthButton"; // temporarily hidden
 import { useAuthStore } from "../../src/stores/authStore";
 import { logEvent, AnalyticsEvents } from "../../src/lib/analytics";
 
@@ -174,7 +174,8 @@ export default function RegisterScreen() {
               size="lg"
             />
 
-            <GoogleAuthButton mode="signup" />
+            {/* Google sign-up button temporarily hidden (functionality preserved in GoogleAuthButton) */}
+            {/* <GoogleAuthButton mode="signup" /> */}
 
             <View className="flex-row justify-center mt-6 mb-8">
               <Text className="text-gray-500 dark:text-gray-400">Already have an account? </Text>

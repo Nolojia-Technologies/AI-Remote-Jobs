@@ -7,6 +7,8 @@ import { userCourseService } from "../../src/services/userCourseService";
 import { Course } from "../../src/types/content.types";
 import { LoadingSpinner } from "../../src/components/ui/LoadingSpinner";
 import { EmptyState } from "../../src/components/ui/EmptyState";
+import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
+import { withNativeAds, isNativeAdSlot } from "../../src/ads/nativeAdSlots";
 
 const DIFF_COLOR: Record<string, string> = {
   beginner: "#22C55E",
@@ -65,11 +67,14 @@ export default function LearnScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />}
         >
-          {courses.map((c) => (
+          {withNativeAds(courses, 4).map((entry) =>
+            isNativeAdSlot(entry) ? (
+              <NativeAdCard key={entry.key} />
+            ) : (
             <TouchableOpacity
-              key={c.id}
+              key={entry.id}
               activeOpacity={0.85}
-              onPress={() => router.push(`/course/${c.id}` as any)}
+              onPress={() => router.push(`/course/${entry.id}` as any)}
               className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
             >
               <View className="flex-row items-start">
@@ -77,27 +82,28 @@ export default function LearnScreen() {
                   <BookOpen size={22} color="#2563EB" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-gray-900 dark:text-white" numberOfLines={1}>{c.title}</Text>
-                  <Text className="text-sm text-gray-500 dark:text-gray-400" numberOfLines={2}>{c.description}</Text>
+                  <Text className="text-base font-bold text-gray-900 dark:text-white" numberOfLines={1}>{entry.title}</Text>
+                  <Text className="text-sm text-gray-500 dark:text-gray-400" numberOfLines={2}>{entry.description}</Text>
                 </View>
                 <ChevronRight size={18} color="#9CA3AF" />
               </View>
               <View className="flex-row items-center gap-2 mt-3">
-                <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: `${DIFF_COLOR[c.difficulty] ?? "#9CA3AF"}1A` }}>
-                  <Text className="text-xs font-bold capitalize" style={{ color: DIFF_COLOR[c.difficulty] ?? "#9CA3AF" }}>{c.difficulty}</Text>
+                <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: `${DIFF_COLOR[entry.difficulty] ?? "#9CA3AF"}1A` }}>
+                  <Text className="text-xs font-bold capitalize" style={{ color: DIFF_COLOR[entry.difficulty] ?? "#9CA3AF" }}>{entry.difficulty}</Text>
                 </View>
                 <View className="flex-row items-center gap-1">
                   <Clock size={13} color="#9CA3AF" />
-                  <Text className="text-xs text-gray-400">{c.estimated_hours}h</Text>
+                  <Text className="text-xs text-gray-400">{entry.estimated_hours}h</Text>
                 </View>
                 <View className="flex-row items-center gap-1">
                   <Zap size={13} color="#F59E0B" />
-                  <Text className="text-xs text-gray-400">{c.xp_reward} XP</Text>
+                  <Text className="text-xs text-gray-400">{entry.xp_reward} XP</Text>
                 </View>
-                {c.category ? <Text className="text-xs text-gray-400 capitalize">· {c.category}</Text> : null}
+                {entry.category ? <Text className="text-xs text-gray-400 capitalize">· {entry.category}</Text> : null}
               </View>
             </TouchableOpacity>
-          ))}
+            )
+          )}
         </ScrollView>
       )}
     </SafeAreaView>

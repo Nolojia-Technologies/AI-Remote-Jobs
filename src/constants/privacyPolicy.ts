@@ -31,9 +31,7 @@ export const PRIVACY_INTRO: string[] = [
 
 export const PRIVACY_CONTACT = {
   org: "Nolojia Technologies",
-  website: "https://www.nolojia.com",
   email: "support@nolojia.com",
-  phone: "+254 793 903 930",
 };
 
 export const PRIVACY_SECTIONS: PolicySection[] = [
