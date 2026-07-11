@@ -280,7 +280,7 @@ function PromptsDialog({ onClose, onGoToImport }: { onClose: () => void; onGoToI
       </div>
       <Textarea readOnly value={prompt} className="min-h-[260px] font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
       <p className="mt-2 text-xs text-muted-foreground">
-        Note: captcha tasks aren't generated this way — they're on-device generators managed under <strong>New task → captcha</strong>.
+        Note: captcha tasks are not generated this way — they are on-device generators managed under <strong>New task → captcha</strong>.
       </p>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Close</Button>
