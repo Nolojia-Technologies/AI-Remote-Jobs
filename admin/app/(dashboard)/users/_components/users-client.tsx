@@ -26,7 +26,11 @@ function activityBadge(lastSeen: string | null): { label: string; variant: "succ
   return { label: "Inactive", variant: "muted" };
 }
 
-const usd = (cents: number) => `$${((cents || 0) / 100).toFixed(2)}`;
+// Earnings are stored in MILLS (1/1000 USD) since migration 025.
+const usd = (mills: number) => {
+  const v = (mills || 0) / 1000;
+  return `$${v.toFixed(v > 0 && v < 0.1 ? 3 : 2)}`;
+};
 
 export function UsersClient({
   users, stats, query, filter, sort,

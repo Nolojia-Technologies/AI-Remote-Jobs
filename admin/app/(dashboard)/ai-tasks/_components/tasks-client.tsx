@@ -18,8 +18,14 @@ import { Textarea } from "@/components/ui/textarea";
 import type { AiTaskInput, AiTaskKind, AiTaskRow, AiTaskStatus } from "@/lib/services/aiTasks";
 import {
   createAiTaskAction, updateAiTaskAction, setAiTaskStatusAction, duplicateAiTaskAction,
-  deleteAiTaskAction, bulkImportAiTasksAction, getAiTaskAnswerAction,
+  deleteAiTaskAction, bulkImportAiTasksAction, getAiTaskAnswerAction, bulkRepriceAction,
 } from "../actions";
+
+/** Rewards are stored in MILLS (1/1000 USD) since migration 025. */
+const money = (mills: number) => {
+  const usd = (mills || 0) / 1000;
+  return `$${usd.toFixed(usd > 0 && usd < 0.1 ? 3 : 2)}`;
+};
 
 const KINDS: AiTaskKind[] = ["microtask", "captcha", "annotation", "survey"];
 const KIND_EMOJI: Record<AiTaskKind, string> = {
@@ -40,7 +46,7 @@ function buildTaskPrompt(kind: string, count: number, focus: string): string {
       : kind === "annotation"
         ? `- Every task: "kind": "annotation". Categories to mix: ${ANNOTATION_CATEGORIES}.\n- For image tasks, set "image_url" to a REAL, publicly hotlinkable photo URL you are CERTAIN exists (Wikimedia Commons direct URLs like https://upload.wikimedia.org/wikipedia/commons/thumb/…/500px-…jpg of very famous files only). If you are not 100% certain the URL works, set "image_url": null and write a TEXT-based annotation task (emotion labeling, entity recognition, document classification) instead — never invent image URLs and never describe images with emoji.\n- Each needs "question", 2–4 "options" and "correct_option" (0-based, objectively correct). Set "survey_questions": null.`
         : kind === "survey"
-          ? `- Every task: "kind": "survey", "category": "survey". Set "question": "", "options": [], "correct_option": null.\n- Provide "survey_questions": an array of 3–6 opinion questions, each { "q": "...", "options": ["...", "..."] } with NO correct answer.\n- Surveys pay more: reward_cents 8–20, est_seconds 60–180.`
+          ? `- Every task: "kind": "survey", "category": "survey". Set "question": "", "options": [], "correct_option": null.\n- Provide "survey_questions": an array of 3–6 opinion questions, each { "q": "...", "options": ["...", "..."] } with NO correct answer.\n- Surveys pay more: reward_cents 30–80 (mills), est_seconds 60–180.`
           : `- Mix kinds: ~60% "microtask" (${MICRO_CATEGORIES}), ~30% "annotation" (${ANNOTATION_CATEGORIES}, describe images with emoji in the question), ~10% "survey" ("category": "survey").\n- microtask/annotation: "question" + 2–4 "options" + "correct_option" (0-based, objectively correct), "survey_questions": null.\n- survey: "question": "", "options": [], "correct_option": null, and "survey_questions": [{ "q", "options" }] (3–6 items).`;
 
   return `You are generating earning micro-tasks for the "AI Tasks" hub of the AI Remote Jobs app, where users earn small cash rewards for helping improve AI systems. Output ONLY a valid JSON array — no markdown, no commentary. Each item uses exactly these fields:
@@ -52,9 +58,9 @@ function buildTaskPrompt(kind: string, count: number, focus: string): string {
     "title": "Rate this review's sentiment",
     "description": "Read the review and pick its sentiment.",
     "difficulty": "easy",
-    "reward_cents": 2,
+    "reward_cents": 5,
     "xp": 3,
-    "est_seconds": 20,
+    "est_seconds": 30,
     "question": "\\"Great app but too many ads.\\" — What is the sentiment?",
     "options": ["Positive", "Negative", "Mixed", "Neutral"],
     "correct_option": 2,
@@ -68,7 +74,8 @@ Kind rules:
 ${kindRules}
 
 General rules:
-- "difficulty": easy | medium | hard. Rewards: easy 1–3 reward_cents, medium 3–6, hard 6–12. "xp": 2–10. "est_seconds": realistic (10–60; surveys up to 180).
+- "reward_cents" is in MILLS (1/1000 of a dollar). Rewards: easy 3–8, medium 8–15, hard 15–30; surveys 30–80. "xp": 2–10. "est_seconds": realistic (20–60; surveys up to 180).
+- "difficulty": easy | medium | hard.
 - "min_task_level": mostly 1; use 2–3 for the hardest/highest-paying tasks (levels unlock as users complete more tasks).
 - Every question must be SELF-CONTAINED, unambiguous, and answerable by anyone without external context. The correct option must be objectively correct — never a matter of opinion (except surveys).
 - Vary the wording — never repeat the same question or scenario twice.
@@ -93,6 +100,7 @@ export function AiTasksClient({
   const [importing, setImporting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [prompting, setPrompting] = useState(false);
+  const [pricing, setPricing] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
 
   function applyFilters(next: { q?: string; status?: string; kind?: string }) {
@@ -130,6 +138,9 @@ export function AiTasksClient({
           <option value="paused">Paused</option>
           <option value="archived">Archived</option>
         </Select>
+        <Button variant="outline" onClick={() => setPricing(true)}>
+          💰 Bulk pricing
+        </Button>
         <Button variant="outline" onClick={() => setGenerating(true)}>
           <Wand2 className="h-4 w-4" /> Generate with AI
         </Button>
@@ -173,7 +184,7 @@ export function AiTasksClient({
                 <TableCell className="hidden sm:table-cell text-muted-foreground">{KIND_EMOJI[t.kind]} {t.kind}</TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">{t.category}</TableCell>
                 <TableCell className="hidden lg:table-cell text-muted-foreground">
-                  ${(t.reward_cents / 100).toFixed(2)} · {t.xp} XP
+                  {money(t.reward_cents)} · {t.xp} XP
                 </TableCell>
                 <TableCell className="hidden lg:table-cell text-muted-foreground">L{t.min_task_level}</TableCell>
                 <TableCell><Badge variant={STATUS_BADGE[t.status] ?? "muted"}>{t.status}</Badge></TableCell>
@@ -231,7 +242,74 @@ export function AiTasksClient({
           onGoToImport={() => { setPrompting(false); setImporting(true); }}
         />
       )}
+      {pricing && <BulkPricingDialog tasks={initialTasks} onClose={() => setPricing(false)} />}
     </div>
+  );
+}
+
+/** Set the reward for every task in a kind × difficulty bucket at once. */
+function BulkPricingDialog({ tasks, onClose }: { tasks: AiTaskRow[]; onClose: () => void }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<number | null>(null);
+
+  const buckets: { kind: AiTaskKind; difficulty: "easy" | "medium" | "hard"; count: number; current: number }[] = [];
+  for (const kind of KINDS) {
+    for (const difficulty of ["easy", "medium", "hard"] as const) {
+      const inBucket = tasks.filter((t) => t.kind === kind && t.difficulty === difficulty && t.status !== "archived");
+      if (inBucket.length > 0) {
+        buckets.push({ kind, difficulty, count: inBucket.length, current: inBucket[0].reward_cents });
+      }
+    }
+  }
+  const [values, setValues] = useState<Record<string, number>>(
+    Object.fromEntries(buckets.map((b) => [`${b.kind}:${b.difficulty}`, b.current]))
+  );
+
+  function apply() {
+    const rules = buckets
+      .map((b) => ({ kind: b.kind, difficulty: b.difficulty, reward_cents: values[`${b.kind}:${b.difficulty}`] }))
+      .filter((r) => Number.isFinite(r.reward_cents) && r.reward_cents >= 0);
+    startTransition(async () => {
+      const count = await bulkRepriceAction(rules);
+      setResult(count);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open onClose={onClose} className="max-w-lg">
+      <DialogHeader><DialogTitle>Bulk pricing</DialogTitle></DialogHeader>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Set the reward (USD) for every non-archived task in each bucket. Changes reflect in the app immediately.
+      </p>
+      <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+        {buckets.map((b) => {
+          const key = `${b.kind}:${b.difficulty}`;
+          return (
+            <div key={key} className="flex items-center gap-3">
+              <span className="w-44 text-sm">{KIND_EMOJI[b.kind]} {b.kind} · {b.difficulty}</span>
+              <span className="w-16 text-xs text-muted-foreground">{b.count} task{b.count === 1 ? "" : "s"}</span>
+              <Input
+                type="number"
+                step="0.001"
+                min="0"
+                className="w-28"
+                value={(values[key] ?? 0) / 1000}
+                onChange={(e) => setValues((v) => ({ ...v, [key]: Math.round((Number(e.target.value) || 0) * 1000) }))}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {result != null && <p className="mt-2 text-sm text-green-600">Updated {result} task(s).</p>}
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>{result != null ? "Done" : "Cancel"}</Button>
+        <Button onClick={apply} disabled={pending}>
+          {pending && <Loader2 className="h-4 w-4 animate-spin" />} Apply prices
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
@@ -395,7 +473,7 @@ function ImportTasksDialog({ onClose }: { onClose: () => void }) {
           title: String(r.title ?? "").trim(),
           description: String(r.description ?? ""),
           difficulty: (["easy", "medium", "hard"].includes(r.difficulty) ? r.difficulty : "easy") as "easy" | "medium" | "hard",
-          reward_cents: Math.max(0, Math.min(500, Number(r.reward_cents) || 2)),
+          reward_cents: Math.max(0, Math.min(5000, Number(r.reward_cents) || 5)),
           xp: Math.max(0, Math.min(100, Number(r.xp) || 3)),
           est_seconds: Math.max(5, Number(r.est_seconds) || 20),
           content: isSurvey
@@ -518,7 +596,7 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
       title: form.title.trim(),
       description: form.description,
       difficulty: form.difficulty,
-      reward_cents: Math.max(0, Math.min(500, Number(form.reward_cents) || 0)),
+      reward_cents: Math.max(0, Math.min(5000, Number(form.reward_cents) || 0)),
       xp: Math.max(0, Math.min(100, Number(form.xp) || 0)),
       est_seconds: Math.max(5, Number(form.est_seconds) || 20),
       min_task_level: Math.max(1, Math.min(7, Number(form.min_task_level) || 1)),
@@ -556,7 +634,16 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
               <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label>Reward (¢)</Label><Input type="number" value={form.reward_cents} onChange={(e) => set("reward_cents", Number(e.target.value))} /></div>
+          <div className="space-y-1.5">
+            <Label>Reward (USD)</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              value={form.reward_cents / 1000}
+              onChange={(e) => set("reward_cents", Math.round((Number(e.target.value) || 0) * 1000))}
+            />
+          </div>
           <div className="space-y-1.5"><Label>XP</Label><Input type="number" value={form.xp} onChange={(e) => set("xp", Number(e.target.value))} /></div>
           <div className="space-y-1.5"><Label>Est. seconds</Label><Input type="number" value={form.est_seconds} onChange={(e) => set("est_seconds", Number(e.target.value))} /></div>
         </div>

@@ -37,7 +37,8 @@
       "Bash(node scripts/run-sql.mjs -q \"select table_name from information_schema.tables where table_schema='public' order by table_name\")",
       "Bash(node scripts/run-sql.mjs supabase/seeds/ai_tasks_batch_001.sql)",
       "Bash(node scripts/run-sql.mjs -q \"select kind, count\\(*\\) n, sum\\(\\(select count\\(*\\) from ai_task_answers a where a.task_id=ai_tasks.id\\)\\) keys from ai_tasks where status='published' group by kind order by kind\")",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "PowerShell($conns = Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue; if \\($conns\\) { $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -Confirm:$false; Write-Output \"killed PID $_\" } } else { Write-Output \"port free\" })"
     ]
   }
 }

@@ -12,7 +12,7 @@ export const TASK_ECONOMY = {
   CAPTCHA_DAILY_CAP: 150,
   DAILY_GOAL_TASKS: 20, // soft goal shown on the dashboard
   /** Minimum wallet balance before a withdrawal can be requested. */
-  WITHDRAWAL_THRESHOLD_CENTS: 10000, // $100
+  WITHDRAWAL_THRESHOLD_CENTS: 100000, // $100 in mills
   /** "Quick break" every N tasks — countdown or rewarded ad to skip. */
   BREAK_EVERY_TASKS: 5,
   BREAK_SECONDS: 15,
@@ -55,10 +55,15 @@ export function taskLevelProgress(tasks: number) {
   return { current, next, pct };
 }
 
-/** Cents → display string ($0.01 precision, always positive-formatted). */
-export function formatCents(cents: number): string {
-  const sign = cents < 0 ? "-" : "";
-  return `${sign}$${(Math.abs(cents) / 100).toFixed(2)}`;
+/**
+ * Earnings unit is MILLS — 1/1000 of a dollar (migration 025). The *Cents
+ * names are kept for compatibility, but every stored amount is mills.
+ * Small amounts show 3 decimals ($0.005); larger ones show 2 ($1.25).
+ */
+export function formatCents(mills: number): string {
+  const usd = Math.abs(mills) / 1000;
+  const sign = mills < 0 ? "-" : "";
+  return `${sign}$${usd.toFixed(usd > 0 && usd < 0.1 ? 3 : 2)}`;
 }
 
 /** Earning category cards shown on the AI Tasks hub. */

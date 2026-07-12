@@ -157,6 +157,32 @@ export const aiTasksService = {
     return ids.length;
   },
 
+  /**
+   * Bulk repricing: set reward (in mills, 1/1000 USD) for every non-archived
+   * task matching kind+difficulty. Rules with reward < 0 are skipped.
+   */
+  async bulkReprice(
+    rules: { kind: AiTaskKind; difficulty: "easy" | "medium" | "hard"; reward_cents: number }[],
+    adminEmail: string
+  ): Promise<number> {
+    const supabase = await createClient();
+    let updated = 0;
+    for (const r of rules) {
+      if (r.reward_cents < 0) continue;
+      const { data, error } = await supabase
+        .from("ai_tasks")
+        .update({ reward_cents: Math.min(5000, Math.round(r.reward_cents)), updated_at: new Date().toISOString() } as any)
+        .eq("kind", r.kind)
+        .eq("difficulty", r.difficulty)
+        .neq("status", "archived")
+        .select("id");
+      if (error) throw error;
+      updated += (data ?? []).length;
+    }
+    await logActivity({ email: adminEmail, action: "bulk_reprice", entity: "ai_task", detail: `${updated} tasks` });
+    return updated;
+  },
+
   async count(status?: AiTaskStatus): Promise<number> {
     const supabase = await createClient();
     let q = supabase.from("ai_tasks").select("id", { count: "exact", head: true });

@@ -331,7 +331,7 @@ export default function AiTasksScreen() {
               Invite friends, earn more
             </Text>
             <Text className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-              Earn {formatCents(50)} for every friend who joins and stays active.
+              Earn {formatCents(200)} for every friend who joins and stays active.
             </Text>
           </View>
           <ChevronRight size={20} color="#10B981" />

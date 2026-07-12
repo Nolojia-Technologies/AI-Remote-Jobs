@@ -47,3 +47,12 @@ export async function getAiTaskAnswerAction(id: string) {
   await requireAdmin();
   return aiTasksService.getAnswer(id);
 }
+
+export async function bulkRepriceAction(
+  rules: { kind: "microtask" | "captcha" | "annotation" | "survey"; difficulty: "easy" | "medium" | "hard"; reward_cents: number }[]
+) {
+  const { email } = await requireAdmin();
+  const count = await aiTasksService.bulkReprice(rules, email);
+  revalidatePath("/ai-tasks");
+  return count;
+}

@@ -46,7 +46,7 @@ export const POST = adminRoute<{ count?: number; kind?: string; focus?: string; 
           title: t.title,
           description: t.description ?? "",
           difficulty: t.difficulty ?? "easy",
-          reward_cents: Math.max(0, Math.min(500, Math.round(t.reward_cents ?? 2))),
+          reward_cents: Math.max(0, Math.min(5000, Math.round(t.reward_cents ?? 5))),
           xp: Math.max(0, Math.min(100, Math.round(t.xp ?? 3))),
           est_seconds: Math.max(5, Math.round(t.est_seconds ?? 20)),
           content,

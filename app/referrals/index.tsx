@@ -96,11 +96,11 @@ export default function ReferralCenterScreen() {
         {/* Hero */}
         <View className="mx-5 mt-3 bg-emerald-600 rounded-3xl p-6 items-center">
           <Text className="text-white text-lg font-bold text-center">
-            Invite friends, earn {formatCents(50)} each
+            Invite friends, earn {formatCents(200)} each
           </Text>
           <Text className="text-emerald-100 text-xs text-center mt-1 px-4">
             You earn when your friend joins, completes 5 AI tasks and stays active for 3
-            days. They get a {formatCents(10)} welcome bonus too.
+            days. They get a {formatCents(50)} welcome bonus too.
           </Text>
 
           {/* Code */}
@@ -156,7 +156,7 @@ export default function ReferralCenterScreen() {
             ["1️⃣", "Share your code or link with friends"],
             ["2️⃣", "They install the app and enter your code"],
             ["3️⃣", "They complete 5 AI tasks and stay active 3 days"],
-            ["4️⃣", `You earn ${formatCents(50)} — paid straight to your wallet`],
+            ["4️⃣", `You earn ${formatCents(200)} — paid straight to your wallet`],
           ].map(([emoji, text]) => (
             <View key={text} className="flex-row items-center gap-3">
               <Text className="text-lg">{emoji}</Text>
