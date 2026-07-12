@@ -9,6 +9,8 @@ export interface TaskContent {
   question?: string;
   options?: string[];
   emoji?: string;
+  /** Real photo to annotate (e.g. Wikimedia CDN URL). */
+  image_url?: string;
   /** Captcha rows: which local generator to use. */
   generator?: CaptchaGenerator;
   /** Survey rows: list of questions. */

@@ -38,7 +38,7 @@ function buildTaskPrompt(kind: string, count: number, focus: string): string {
     kind === "microtask"
       ? `- Every task: "kind": "microtask". Categories to mix: ${MICRO_CATEGORIES}.\n- Each needs "question", 2–4 "options" and "correct_option" (0-based index of the ONE objectively correct option). Set "survey_questions": null.`
       : kind === "annotation"
-        ? `- Every task: "kind": "annotation". Categories to mix: ${ANNOTATION_CATEGORIES}.\n- Describe images using emoji inside the question (e.g. "Which animal is shown? 🐘").\n- Each needs "question", 2–4 "options" and "correct_option" (0-based, objectively correct). Set "survey_questions": null.`
+        ? `- Every task: "kind": "annotation". Categories to mix: ${ANNOTATION_CATEGORIES}.\n- For image tasks, set "image_url" to a REAL, publicly hotlinkable photo URL you are CERTAIN exists (Wikimedia Commons direct URLs like https://upload.wikimedia.org/wikipedia/commons/thumb/…/500px-…jpg of very famous files only). If you are not 100% certain the URL works, set "image_url": null and write a TEXT-based annotation task (emotion labeling, entity recognition, document classification) instead — never invent image URLs and never describe images with emoji.\n- Each needs "question", 2–4 "options" and "correct_option" (0-based, objectively correct). Set "survey_questions": null.`
         : kind === "survey"
           ? `- Every task: "kind": "survey", "category": "survey". Set "question": "", "options": [], "correct_option": null.\n- Provide "survey_questions": an array of 3–6 opinion questions, each { "q": "...", "options": ["...", "..."] } with NO correct answer.\n- Surveys pay more: reward_cents 8–20, est_seconds 60–180.`
           : `- Mix kinds: ~60% "microtask" (${MICRO_CATEGORIES}), ~30% "annotation" (${ANNOTATION_CATEGORIES}, describe images with emoji in the question), ~10% "survey" ("category": "survey").\n- microtask/annotation: "question" + 2–4 "options" + "correct_option" (0-based, objectively correct), "survey_questions": null.\n- survey: "question": "", "options": [], "correct_option": null, and "survey_questions": [{ "q", "options" }] (3–6 items).`;
@@ -58,6 +58,7 @@ function buildTaskPrompt(kind: string, count: number, focus: string): string {
     "question": "\\"Great app but too many ads.\\" — What is the sentiment?",
     "options": ["Positive", "Negative", "Mixed", "Neutral"],
     "correct_option": 2,
+    "image_url": null,
     "survey_questions": null,
     "min_task_level": 1
   }
@@ -399,7 +400,11 @@ function ImportTasksDialog({ onClose }: { onClose: () => void }) {
           est_seconds: Math.max(5, Number(r.est_seconds) || 20),
           content: isSurvey
             ? { questions: Array.isArray(r.survey_questions) ? r.survey_questions : [] }
-            : { question: String(r.question ?? ""), options },
+            : {
+                question: String(r.question ?? ""),
+                options,
+                ...(r.image_url ? { image_url: String(r.image_url) } : {}),
+              },
           min_task_level: Math.max(1, Math.min(7, Number(r.min_task_level) || 1)),
           status: (publish ? "published" : "draft") as AiTaskStatus,
           answer: hasKey ? { choice: Number(r.correct_option) } : null,
@@ -459,6 +464,7 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
     min_task_level: task?.min_task_level ?? 1,
     repeatable: task?.repeatable ?? false,
     question: task?.content?.question ?? "",
+    image_url: task?.content?.image_url ?? "",
     options: ((task?.content?.options ?? []) as string[]).join("\n"),
     correct_option: "" as string,
     survey_json: isSurveyInit ? JSON.stringify(task?.content?.questions ?? [], null, 2) : "",
@@ -496,7 +502,11 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
       content = { generator: form.generator };
       answer = null;
     } else {
-      content = { question: form.question, options };
+      content = {
+        question: form.question,
+        options,
+        ...(form.image_url.trim() ? { image_url: form.image_url.trim() } : {}),
+      };
       const idx = Number(form.correct_option);
       answer = form.correct_option !== "" && Number.isInteger(idx) && idx >= 0 && idx < options.length
         ? { choice: idx }
@@ -591,6 +601,14 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
         {!isSurvey && !isCaptcha && (
           <>
             <div className="space-y-1.5"><Label>Question</Label><Textarea value={form.question} onChange={(e) => set("question", e.target.value)} className="min-h-[70px]" /></div>
+            <div className="space-y-1.5">
+              <Label>Image URL (annotation photos — optional)</Label>
+              <Input value={form.image_url} onChange={(e) => set("image_url", e.target.value)} placeholder="https://upload.wikimedia.org/…/500px-Cat03.jpg" />
+              {form.image_url.trim() && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.image_url.trim()} alt="Task preview" className="mt-1 h-32 rounded-md object-cover" />
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Options (one per line)</Label>

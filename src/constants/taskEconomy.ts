@@ -13,7 +13,16 @@ export const TASK_ECONOMY = {
   DAILY_GOAL_TASKS: 20, // soft goal shown on the dashboard
   /** Minimum wallet balance before a withdrawal can be requested. */
   WITHDRAWAL_THRESHOLD_CENTS: 10000, // $100
+  /** "Quick break" every N tasks — countdown or rewarded ad to skip. */
+  BREAK_EVERY_TASKS: 5,
+  BREAK_SECONDS: 15,
 } as const;
+
+/** Forced reading time before answers unlock (anti blind-tap + session depth).
+ *  Server independently rejects submissions faster than 30% of est_seconds. */
+export function reviewLockMs(estSeconds: number): number {
+  return Math.round(Math.min(Math.max(estSeconds * 0.4, 6), 15) * 1000);
+}
 
 /** Task levels — thresholds are lifetime approved tasks (mirrors get_task_level). */
 export const TASK_LEVELS = [

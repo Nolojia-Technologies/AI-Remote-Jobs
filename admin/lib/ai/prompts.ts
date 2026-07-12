@@ -199,12 +199,12 @@ Task kind: ${input.kind}. ${input.focus ? `Theme/focus: ${input.focus}.` : ""}
 
 Rules:
 - "kind": microtask | annotation | survey.
-- microtask/annotation: single multiple-choice question with ONE objectively correct answer. Provide "question", 2–4 "options", and "correct_option" (0-based index). Categories: sentiment_analysis, text_classification, prompt_evaluation, chatbot_evaluation, response_rating, ocr_correction, translation_validation, intent_classification (microtask) / image_labeling, object_detection, emotion_labeling, entity_recognition, document_classification (annotation). Image tasks must describe the image with emoji in the question (e.g. "Which animal is shown? 🐘").
+- microtask/annotation: single multiple-choice question with ONE objectively correct answer. Provide "question", 2–4 "options", and "correct_option" (0-based index). Categories: sentiment_analysis, text_classification, prompt_evaluation, chatbot_evaluation, response_rating, ocr_correction, translation_validation, intent_classification (microtask) / image_labeling, object_detection, emotion_labeling, entity_recognition, document_classification (annotation). For image tasks set "image_url" ONLY to a real Wikimedia Commons direct URL (https://upload.wikimedia.org/…) of a very famous file you are certain exists; if not certain, set image_url to null and write a TEXT-based annotation task instead — never invent URLs and never describe images with emoji.
 - survey: opinion questions with NO correct answer — provide "survey_questions" (3–6 items, each { "q", "options" }) and set correct_option to null.
 - "reward_cents": 1–5 for easy, 3–8 for medium, 5–15 for hard, 8–20 for surveys. "xp": 2–10. "est_seconds": realistic (10–60, surveys up to 180).
 - Questions must be self-contained, unambiguous, and answerable by anyone (no external context). Vary wording — never repeat the same question.
 - Audience: AI-skilled earners in Kenya, Qatar and the global remote market; Swahili/Arabic translation-validation tasks welcome.
 
-Return JSON: { "tasks": [ { "kind", "category", "title", "description", "difficulty", "reward_cents", "xp", "est_seconds", "question", "options", "correct_option", "survey_questions", "min_task_level" } ] }`,
+Return JSON: { "tasks": [ { "kind", "category", "title", "description", "difficulty", "reward_cents", "xp", "est_seconds", "question", "options", "correct_option", "image_url", "survey_questions", "min_task_level" } ] }`,
   };
 }

@@ -6,6 +6,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,6 +19,7 @@ import {
   TASK_ECONOMY,
   formatCents,
   MICROTASK_CATEGORIES,
+  reviewLockMs,
 } from "../../src/constants/taskEconomy";
 import { generateCaptcha, sliderMatches, CaptchaPuzzle } from "../../src/data/aiTasksLocal";
 import { RewardedAdManager } from "../../src/ads/RewardedAdManager";
@@ -26,7 +28,7 @@ import { JobInterstitialManager } from "../../src/ads/JobInterstitialManager";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 
-type WallKind = "segment" | "daily" | null;
+type WallKind = "segment" | "daily" | "break" | null;
 
 /** Pressable slider track (no external deps): tap/drag sets 0–100. */
 function SliderTrack({
@@ -86,7 +88,15 @@ export default function TaskRunnerScreen() {
   const [index, setIndex] = useState(0);
   const [sessionDone, setSessionDone] = useState(0);
   const [sessionCents, setSessionCents] = useState(0);
-  const [wall, setWall] = useState<WallKind>(null);
+  const [wall, setWallState] = useState<WallKind>(null);
+  const wallRef = useRef<WallKind>(null);
+  const setWall = (w: WallKind) => {
+    wallRef.current = w;
+    setWallState(w);
+  };
+  const [breakLeft, setBreakLeft] = useState<number>(TASK_ECONOMY.BREAK_SECONDS);
+  const [reviewLeft, setReviewLeft] = useState(0);
+  const [imgLoading, setImgLoading] = useState(true);
   const [adBusy, setAdBusy] = useState(false);
   const [wallMsg, setWallMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -137,8 +147,39 @@ export default function TaskRunnerScreen() {
     setSurveyStep(0);
     setSurveyAnswers([]);
     setFeedback(null);
+    setImgLoading(true);
     startedAt.current = Date.now();
   }, [kind, index, captchaRound, captchaTask?.id]);
+
+  // Review lock: answers stay disabled while the user reads the task.
+  // (Captchas are exempt — typing/sliding IS the work.)
+  useEffect(() => {
+    if (!task || kind === "captcha" || wall) return;
+    const lockMs = kind === "survey" ? 3000 : reviewLockMs(task.estSeconds);
+    setReviewLeft(Math.ceil(lockMs / 1000));
+    const iv = setInterval(() => {
+      setReviewLeft((s) => {
+        if (s <= 1) clearInterval(iv);
+        return Math.max(0, s - 1);
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [kind, index, surveyStep, wall, task?.id]);
+
+  // Break countdown: auto-continue when it reaches zero.
+  useEffect(() => {
+    if (wall !== "break") return;
+    setBreakLeft(TASK_ECONOMY.BREAK_SECONDS);
+    const iv = setInterval(() => setBreakLeft((s) => s - 1), 1000);
+    return () => clearInterval(iv);
+  }, [wall]);
+
+  useEffect(() => {
+    if (wall === "break" && breakLeft <= 0) {
+      setWall(null);
+      advance();
+    }
+  }, [breakLeft, wall]);
 
   const advance = () => {
     if (kind === "captcha") setCaptchaRound((r) => r + 1);
@@ -151,8 +192,11 @@ export default function TaskRunnerScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSessionDone((n) => {
         const next = n + 1;
-        // Segment wall every AD_SEGMENT_SIZE tasks in-session — rewarded ad to continue.
+        // Segment wall every AD_SEGMENT_SIZE tasks — rewarded ad to continue.
+        // Between walls, a "quick break" every BREAK_EVERY_TASKS: short
+        // countdown, skippable with a rewarded ad.
         if (next % TASK_ECONOMY.AD_SEGMENT_SIZE === 0) setWall("segment");
+        else if (next % TASK_ECONOMY.BREAK_EVERY_TASKS === 0) setWall("break");
         return next;
       });
       setSessionCents((c) => c + cents);
@@ -166,7 +210,9 @@ export default function TaskRunnerScreen() {
     }
     setTimeout(() => {
       setFeedback(null);
-      advance();
+      // Wall screens own the next advance() (ad gate / break countdown) —
+      // advancing here too would skip a task.
+      if (!wallRef.current) advance();
     }, correct ? 900 : 1400);
   };
 
@@ -289,22 +335,32 @@ export default function TaskRunnerScreen() {
   // ─── Wall screens ──────────────────────────────────────────
   if (wall) {
     const isDaily = wall === "daily";
+    const isBreak = wall === "break";
     const atAdCap = earn.summary.today.adBatches >= TASK_ECONOMY.MAX_AD_BATCHES;
     return (
       <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
         {Header}
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 20 }}>
           <View className="bg-white dark:bg-gray-800 rounded-3xl p-6 items-center">
-            <Text className="text-5xl mb-3">{isDaily ? "🌙" : "🎉"}</Text>
+            <Text className="text-5xl mb-3">{isDaily ? "🌙" : isBreak ? "☕" : "🎉"}</Text>
             <Text className="text-xl font-bold text-gray-900 dark:text-white text-center">
-              {isDaily ? "You've completed today's available tasks" : "Batch complete!"}
+              {isDaily
+                ? "You've completed today's available tasks"
+                : isBreak
+                  ? "Quick break"
+                  : "Batch complete!"}
             </Text>
+            {isBreak && (
+              <Text className="text-4xl font-bold text-primary-600 mt-2">{breakLeft}s</Text>
+            )}
             <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
               {isDaily
                 ? atAdCap
                   ? "Amazing hustle! You've maxed out today. Come back tomorrow for a fresh batch."
                   : `Come back tomorrow — or watch one short ad to unlock ${TASK_ECONOMY.BATCH_SIZE} more tasks now.`
-                : `You crushed ${TASK_ECONOMY.AD_SEGMENT_SIZE} tasks. Watch one short ad to unlock the next batch.`}
+                : isBreak
+                  ? "The next task unlocks in a moment — or watch one short ad to skip the wait."
+                  : `You crushed ${TASK_ECONOMY.AD_SEGMENT_SIZE} tasks. Watch one short ad to unlock the next batch.`}
             </Text>
             <View className="flex-row gap-6 my-5">
               <View className="items-center">
@@ -332,7 +388,9 @@ export default function TaskRunnerScreen() {
                 ) : (
                   <>
                     <Play size={18} color="#fff" />
-                    <Text className="text-white font-bold text-base">Watch Ad & Continue</Text>
+                    <Text className="text-white font-bold text-base">
+                      {isBreak ? "Watch Ad & Skip Wait" : "Watch Ad & Continue"}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -475,9 +533,35 @@ export default function TaskRunnerScreen() {
               )}
             </View>
           )}
+          {/* Real photo (annotation tasks) */}
+          {!isCaptcha && task.content.image_url && (
+            <View className="rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 mb-4">
+              <Image
+                source={{ uri: task.content.image_url }}
+                style={{ width: "100%", height: 220 }}
+                resizeMode="cover"
+                onLoadEnd={() => setImgLoading(false)}
+              />
+              {imgLoading && (
+                <View className="absolute inset-0 items-center justify-center">
+                  <ActivityIndicator color="#2563EB" />
+                </View>
+              )}
+            </View>
+          )}
           <Text className="text-lg font-bold text-gray-900 dark:text-white leading-6">
             {question}
           </Text>
+
+          {/* Review lock — answers unlock after a short reading period */}
+          {!isCaptcha && reviewLeft > 0 && (
+            <View className="mt-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl px-3 py-2 flex-row items-center gap-2">
+              <Clock size={13} color="#2563EB" />
+              <Text className="text-xs font-semibold text-primary-700 dark:text-primary-300">
+                Review carefully — answers unlock in {reviewLeft}s
+              </Text>
+            </View>
+          )}
 
           {/* Captcha: free text */}
           {isCaptcha && puzzle && !puzzle.options && puzzle.sliderTarget == null && (
@@ -528,16 +612,20 @@ export default function TaskRunnerScreen() {
           {/* Options (microtask / annotation / survey / selection captcha) */}
           {options.length > 0 && (
             <View className="mt-4 gap-2.5">
-              {options.map((opt, i) => (
+              {options.map((opt, i) => {
+                const locked = !isCaptcha && reviewLeft > 0;
+                return (
                 <TouchableOpacity
                   key={`${i}-${opt}`}
-                  disabled={submitting || !!feedback}
+                  disabled={submitting || !!feedback || locked}
                   onPress={() => {
                     if (isCaptcha) selectCaptchaOption(i);
                     else if (isSurvey) answerSurvey(i);
                     else submit({ choice: i });
                   }}
-                  className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-4"
+                  className={`bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-4 ${
+                    locked ? "opacity-40" : ""
+                  }`}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -548,7 +636,8 @@ export default function TaskRunnerScreen() {
                     {opt}
                   </Text>
                 </TouchableOpacity>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>

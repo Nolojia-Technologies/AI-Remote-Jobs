@@ -36,7 +36,8 @@
       "Bash(powershell -Command \"Stop-Process -Id 8164 -Force -ErrorAction SilentlyContinue; Write-Output 'done'\")",
       "Bash(node scripts/run-sql.mjs -q \"select table_name from information_schema.tables where table_schema='public' order by table_name\")",
       "Bash(node scripts/run-sql.mjs supabase/seeds/ai_tasks_batch_001.sql)",
-      "Bash(node scripts/run-sql.mjs -q \"select kind, count\\(*\\) n, sum\\(\\(select count\\(*\\) from ai_task_answers a where a.task_id=ai_tasks.id\\)\\) keys from ai_tasks where status='published' group by kind order by kind\")"
+      "Bash(node scripts/run-sql.mjs -q \"select kind, count\\(*\\) n, sum\\(\\(select count\\(*\\) from ai_task_answers a where a.task_id=ai_tasks.id\\)\\) keys from ai_tasks where status='published' group by kind order by kind\")",
+      "Bash(npx next *)"
     ]
   }
 }

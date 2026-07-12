@@ -30,7 +30,15 @@ export const POST = adminRoute<{ count?: number; kind?: string; focus?: string; 
         const options = t.options ?? [];
         const content = isSurvey
           ? { questions: t.survey_questions ?? [] }
-          : { question: t.question ?? "", options };
+          : {
+              question: t.question ?? "",
+              options,
+              // Only trust plausible Wikimedia CDN links — anything else is
+              // likely hallucinated and would render a broken image.
+              ...(t.image_url && t.image_url.startsWith("https://upload.wikimedia.org/")
+                ? { image_url: t.image_url }
+                : {}),
+            };
         const hasKey = !isSurvey && t.correct_option != null && options.length > 0;
         return {
           kind: t.kind ?? "microtask",

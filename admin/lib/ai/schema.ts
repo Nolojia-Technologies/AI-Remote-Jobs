@@ -147,6 +147,7 @@ export const aiTaskGenSchema = z.object({
         question: z.string().default(""),
         options: z.array(z.string()).default([]),
         correct_option: z.number().nullable().default(null),
+        image_url: z.string().nullable().default(null),
         survey_questions: z
           .array(z.object({ q: z.string(), options: z.array(z.string()) }))
           .nullable()
