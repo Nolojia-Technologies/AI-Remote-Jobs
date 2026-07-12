@@ -7,6 +7,7 @@ import { useAuthStore } from "../../src/stores/authStore";
 import { useEarnStore } from "../../src/stores/earnStore";
 import { formatCents, taskLevelProgress, TASK_ECONOMY } from "../../src/constants/taskEconomy";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
+import { BottomBanner } from "../../src/components/ads/BottomBanner";
 import { WalletTransaction } from "../../src/types/tasks.types";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 import { EmptyState } from "../../src/components/ui/EmptyState";
@@ -188,6 +189,11 @@ export default function WalletScreen() {
           ))}
         </View>
 
+        {/* Native ad — between stats and breakdown */}
+        <View className="mx-5 mt-4">
+          <NativeAdCard />
+        </View>
+
         {/* Earnings breakdown */}
         <Text className="text-lg font-bold text-gray-900 dark:text-white px-5 mt-6 mb-3">
           Earnings Breakdown
@@ -271,6 +277,7 @@ export default function WalletScreen() {
           )}
         </View>
       </ScrollView>
+      <BottomBanner />
     </SafeAreaView>
   );
 }

@@ -385,6 +385,11 @@ export default function AiTasksScreen() {
             ))}
           </View>
         )}
+
+        {/* Native ad — end of feed */}
+        <View className="px-5 mt-4">
+          <NativeAdCard />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
