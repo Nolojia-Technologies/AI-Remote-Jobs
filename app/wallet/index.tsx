@@ -188,11 +188,6 @@ export default function WalletScreen() {
           ))}
         </View>
 
-        {/* Native ad — between stats and breakdown */}
-        <View className="mx-5 mt-4">
-          <NativeAdCard />
-        </View>
-
         {/* Earnings breakdown */}
         <Text className="text-lg font-bold text-gray-900 dark:text-white px-5 mt-6 mb-3">
           Earnings Breakdown

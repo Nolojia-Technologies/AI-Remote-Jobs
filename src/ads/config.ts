@@ -59,35 +59,35 @@ export const FORCED_MOMENT_ACTIONS: Set<MeaningfulAction> = new Set([
 
 export const AD_CONFIG = {
   interstitial: {
-    firstThreshold: 3, // first interstitial after 3 meaningful actions (new users)
-    recurringThreshold: 4, // then every 4 actions
-    jobViewsPerAd: 6, // Jobs tab: interstitial every 6 job views
-    // Cooldown since the previous interstitial, by user type. A 60s+ floor keeps
-    // interstitials at natural breakpoints rather than on every navigation —
-    // which is what AdMob policy expects. Never set to 0 (accidental-click /
-    // "too many interstitials" violations risk account suspension).
+    firstThreshold: 2, // first interstitial after 2 meaningful actions (new users)
+    recurringThreshold: 3, // then every 3 actions
+    jobViewsPerAd: 4, // Jobs tab: interstitial every 4 job views
+    // Cooldown since the previous interstitial, by user type. Keep a real
+    // floor (45s+) so interstitials land at natural breakpoints rather than
+    // on every navigation — accidental-click / "too many interstitials"
+    // violations risk AdMob account suspension. New users stay gentler.
     cooldownByType: {
-      new: 90 * SEC,
-      casual: 75 * SEC,
-      engaged: 60 * SEC,
-      power: 60 * SEC,
-      whale: 60 * SEC,
-      returning: 75 * SEC,
-      dormant: 90 * SEC,
+      new: 75 * SEC,
+      casual: 60 * SEC,
+      engaged: 45 * SEC,
+      power: 45 * SEC,
+      whale: 45 * SEC,
+      returning: 60 * SEC,
+      dormant: 75 * SEC,
     } as Record<UserType, number>,
     // Daily caps by day-number since first use (power/whale override).
     // Day 1 stays conservative (first impressions + policy); later days are
     // higher now that the AI Tasks hub adds long earning sessions with many
     // natural transition points. Cooldowns above are the real pacing control.
-    dailyByDay: { 1: 8, 2: 14, default: 18 },
-    powerDailyLimit: 25,
+    dailyByDay: { 1: 10, 2: 16, default: 24 },
+    powerDailyLimit: 30,
     // Max interstitials allowed by elapsed session time (cumulative).
     // 60+ min => unlimited (cooldown only).
     sessionCaps: [
-      { upToMs: 5 * MIN, cap: 2 },
-      { upToMs: 15 * MIN, cap: 6 },
-      { upToMs: 30 * MIN, cap: 10 },
-      { upToMs: 60 * MIN, cap: 15 },
+      { upToMs: 5 * MIN, cap: 3 },
+      { upToMs: 15 * MIN, cap: 8 },
+      { upToMs: 30 * MIN, cap: 13 },
+      { upToMs: 60 * MIN, cap: 20 },
     ],
   },
   appOpen: {

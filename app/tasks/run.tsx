@@ -177,7 +177,9 @@ export default function TaskRunnerScreen() {
   useEffect(() => {
     if (wall === "break" && breakLeft <= 0) {
       setWall(null);
-      advance();
+      // Break ended without the rewarded skip — natural transition point,
+      // so attempt an engine-gated interstitial before resuming.
+      JobInterstitialManager.openJob(() => advance());
     }
   }, [breakLeft, wall]);
 
@@ -432,9 +434,6 @@ export default function TaskRunnerScreen() {
           >
             <Text className="text-white font-bold">Back to AI Tasks</Text>
           </TouchableOpacity>
-          <View className="w-full mt-6">
-            <NativeAdCard />
-          </View>
         </View>
       </SafeAreaView>
     );
@@ -679,11 +678,6 @@ export default function TaskRunnerScreen() {
           </View>
         )}
 
-        {/* Native ad — fills the space below the task card. Stays mounted
-            across tasks (same tree position) so it doesn't re-request per task. */}
-        <View className="mt-5">
-          <NativeAdCard />
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
