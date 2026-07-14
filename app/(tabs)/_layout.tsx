@@ -4,7 +4,6 @@ import { Platform, View } from "react-native";
 import { Home, BookOpen, User, CircleDollarSign, LucideProps } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StickyBanner } from "../../src/components/ads/StickyBanner";
 
 function TabIcon({
   icon: Icon,
@@ -28,7 +27,6 @@ function TabIcon({
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const tabBarHeight = 60 + insets.bottom;
 
   return (
     <View style={{ flex: 1 }}>
@@ -101,7 +99,6 @@ export default function TabsLayout() {
         }}
       />
       </Tabs>
-      <StickyBanner bottom={tabBarHeight} />
     </View>
   );
 }

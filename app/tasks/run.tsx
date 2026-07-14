@@ -26,7 +26,6 @@ import { RewardedAdManager } from "../../src/ads/RewardedAdManager";
 import { InterstitialAdManager } from "../../src/ads/InterstitialAdManager";
 import { JobInterstitialManager } from "../../src/ads/JobInterstitialManager";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
-import { BottomBanner } from "../../src/components/ads/BottomBanner";
 import { ProgressBar } from "../../src/components/ui/ProgressBar";
 
 type WallKind = "segment" | "daily" | "break" | null;
@@ -341,7 +340,7 @@ export default function TaskRunnerScreen() {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
         {Header}
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 20, paddingBottom: 90 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 20 }}>
           <View className="bg-white dark:bg-gray-800 rounded-3xl p-6 items-center">
             <Text className="text-5xl mb-3">{isDaily ? "🌙" : isBreak ? "☕" : "🎉"}</Text>
             <Text className="text-xl font-bold text-gray-900 dark:text-white text-center">
@@ -409,7 +408,6 @@ export default function TaskRunnerScreen() {
             <NativeAdCard />
           </View>
         </ScrollView>
-        <BottomBanner />
       </SafeAreaView>
     );
   }
@@ -438,7 +436,6 @@ export default function TaskRunnerScreen() {
             <NativeAdCard />
           </View>
         </View>
-        <BottomBanner />
       </SafeAreaView>
     );
   }
@@ -479,7 +476,7 @@ export default function TaskRunnerScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
         {/* Task meta */}
         <View className="flex-row items-center gap-2 mb-3 flex-wrap">
           <View className="bg-gray-100 dark:bg-gray-800 rounded-lg px-2.5 py-1">
@@ -688,7 +685,6 @@ export default function TaskRunnerScreen() {
           <NativeAdCard />
         </View>
       </ScrollView>
-      <BottomBanner />
     </SafeAreaView>
   );
 }
