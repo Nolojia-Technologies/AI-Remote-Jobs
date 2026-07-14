@@ -4,6 +4,7 @@ import { Platform, View } from "react-native";
 import { Home, BookOpen, User, CircleDollarSign, LucideProps } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ExitPrompt } from "../../src/components/ExitPrompt";
 
 function TabIcon({
   icon: Icon,
@@ -99,6 +100,7 @@ export default function TabsLayout() {
         }}
       />
       </Tabs>
+      <ExitPrompt />
     </View>
   );
 }
