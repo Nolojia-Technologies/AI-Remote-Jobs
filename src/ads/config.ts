@@ -59,36 +59,32 @@ export const FORCED_MOMENT_ACTIONS: Set<MeaningfulAction> = new Set([
 
 export const AD_CONFIG = {
   interstitial: {
-    firstThreshold: 2, // first interstitial after 2 meaningful actions (new users)
-    recurringThreshold: 3, // then every 3 actions
-    jobViewsPerAd: 4, // Jobs tab: interstitial every 4 job views
-    // Cooldown since the previous interstitial, by user type.
-    // Set to 15s per product decision (2026-07): maximum fill during long
-    // task sessions. NOTE: this is below AdMob's informal comfort zone —
-    // if the account gets an "interstitial frequency" policy warning,
-    // raise these back to 45s+ first.
+    // MAXIMUM-PRESSURE MODE (product decision 2026-07): every trigger is
+    // eligible; the only pacing left is a 10s anti-double-fire guard so two
+    // transitions in a row can't stack ads back-to-back (that exact pattern
+    // is what AdMob flags). AdMob publishes no numeric limit — if a policy
+    // warning ever arrives, restore: cooldown 45s+, thresholds 2/3, daily
+    // caps 10/16/24, session caps 3/8/13/20.
+    firstThreshold: 1, // first interstitial after the 1st meaningful action
+    recurringThreshold: 1, // then on every eligible action
+    jobViewsPerAd: 2, // Jobs tab: interstitial every 2 job views
     cooldownByType: {
-      new: 15 * SEC,
-      casual: 15 * SEC,
-      engaged: 15 * SEC,
-      power: 15 * SEC,
-      whale: 15 * SEC,
-      returning: 15 * SEC,
-      dormant: 15 * SEC,
+      new: 10 * SEC,
+      casual: 10 * SEC,
+      engaged: 10 * SEC,
+      power: 10 * SEC,
+      whale: 10 * SEC,
+      returning: 10 * SEC,
+      dormant: 10 * SEC,
     } as Record<UserType, number>,
-    // Daily caps by day-number since first use (power/whale override).
-    // Day 1 stays conservative (first impressions + policy); later days are
-    // higher now that the AI Tasks hub adds long earning sessions with many
-    // natural transition points. Cooldowns above are the real pacing control.
-    dailyByDay: { 1: 10, 2: 16, default: 24 },
-    powerDailyLimit: 30,
-    // Max interstitials allowed by elapsed session time (cumulative).
-    // 60+ min => unlimited (cooldown only).
+    // Caps effectively removed — the cooldown is the sole limiter.
+    dailyByDay: { 1: 999, 2: 999, default: 999 },
+    powerDailyLimit: 999,
     sessionCaps: [
-      { upToMs: 5 * MIN, cap: 3 },
-      { upToMs: 15 * MIN, cap: 8 },
-      { upToMs: 30 * MIN, cap: 13 },
-      { upToMs: 60 * MIN, cap: 20 },
+      { upToMs: 5 * MIN, cap: 999 },
+      { upToMs: 15 * MIN, cap: 999 },
+      { upToMs: 30 * MIN, cap: 999 },
+      { upToMs: 60 * MIN, cap: 999 },
     ],
   },
   appOpen: {
