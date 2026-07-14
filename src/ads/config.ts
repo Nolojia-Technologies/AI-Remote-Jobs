@@ -62,18 +62,19 @@ export const AD_CONFIG = {
     firstThreshold: 2, // first interstitial after 2 meaningful actions (new users)
     recurringThreshold: 3, // then every 3 actions
     jobViewsPerAd: 4, // Jobs tab: interstitial every 4 job views
-    // Cooldown since the previous interstitial, by user type. Keep a real
-    // floor (45s+) so interstitials land at natural breakpoints rather than
-    // on every navigation — accidental-click / "too many interstitials"
-    // violations risk AdMob account suspension. New users stay gentler.
+    // Cooldown since the previous interstitial, by user type.
+    // Set to 15s per product decision (2026-07): maximum fill during long
+    // task sessions. NOTE: this is below AdMob's informal comfort zone —
+    // if the account gets an "interstitial frequency" policy warning,
+    // raise these back to 45s+ first.
     cooldownByType: {
-      new: 75 * SEC,
-      casual: 60 * SEC,
-      engaged: 45 * SEC,
-      power: 45 * SEC,
-      whale: 45 * SEC,
-      returning: 60 * SEC,
-      dormant: 75 * SEC,
+      new: 15 * SEC,
+      casual: 15 * SEC,
+      engaged: 15 * SEC,
+      power: 15 * SEC,
+      whale: 15 * SEC,
+      returning: 15 * SEC,
+      dormant: 15 * SEC,
     } as Record<UserType, number>,
     // Daily caps by day-number since first use (power/whale override).
     // Day 1 stays conservative (first impressions + policy); later days are
