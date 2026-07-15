@@ -315,12 +315,25 @@ export const useEarnStore = create<EarnState>((set, get) => ({
     if (state.backendAvailable && !task.isLocal) {
       try {
         const nonce = `${task.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const { data, error } = await (supabase as any).rpc("complete_ai_task", {
-          p_task_id: task.id,
-          p_answer: answer,
-          p_duration_ms: Math.round(durationMs),
-          p_client_nonce: nonce,
-        });
+        const call = (extraMs: number) =>
+          (supabase as any).rpc("complete_ai_task", {
+            p_task_id: task.id,
+            p_answer: answer,
+            p_duration_ms: Math.round(durationMs + extraMs),
+            p_client_nonce: nonce,
+          });
+        let { data, error } = await call(0);
+        // Throttle rejections (fast answer / burst of settles) are transient —
+        // wait out the window and retry once so the user's work isn't lost.
+        if (
+          !error &&
+          data &&
+          !data.ok &&
+          (data.error === "Submitted too fast" || String(data.error).startsWith("Too many"))
+        ) {
+          await new Promise((r) => setTimeout(r, 1700));
+          ({ data, error } = await call(1700));
+        }
         if (error || !data) return fail("Could not submit — check your connection");
         if (!data.ok) return fail(data.error ?? "Submission rejected");
 

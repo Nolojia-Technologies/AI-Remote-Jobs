@@ -22,7 +22,6 @@ import {
   taskLevelInfo,
 } from "../../src/constants/taskEconomy";
 import { generateCaptcha, sliderMatches, CaptchaPuzzle } from "../../src/data/aiTasksLocal";
-import { RewardedAdManager } from "../../src/ads/RewardedAdManager";
 import { InterstitialAdManager } from "../../src/ads/InterstitialAdManager";
 import { JobInterstitialManager } from "../../src/ads/JobInterstitialManager";
 import { NotificationService } from "../../src/notifications/NotificationService";
@@ -126,7 +125,6 @@ export default function TaskRunnerScreen() {
   }, [task?.id, kind]);
 
   useEffect(() => {
-    RewardedAdManager.preload();
     InterstitialAdManager.preload();
   }, []);
 
@@ -166,25 +164,46 @@ export default function TaskRunnerScreen() {
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
 
+  const pendingRef = useRef(0);
+
   /**
    * Instant flow: consume the task and show the next one IMMEDIATELY; the
    * server validation + wallet credit settle in the background and surface
-   * as a floating toast. The mandatory ad wall raises the moment the server
-   * says the segment is full.
+   * as a floating toast. The ad wall raises the moment the segment is full.
+   * If the server DIDN'T count an answer (limit reached / throttled after
+   * retry), the task is put back in the queue so no work is ever lost.
    */
   const submit = (answered: AiTask, answer: any) => {
+    // Segment already full (counting in-flight answers) → wall, don't submit.
+    if (earn.tasksRemainingToday() - pendingRef.current <= 0) {
+      setWall(true);
+      return;
+    }
     const duration = Date.now() - startedAt.current;
+    pendingRef.current += 1;
     if (kind !== "captcha") {
       setConsumed((prev) => new Set(prev).add(answered.id));
     }
     advance();
 
     earn.completeTask(answered, answer, duration).then((result) => {
+      pendingRef.current = Math.max(0, pendingRef.current - 1);
       if (!result.ok) {
+        // Not recorded server-side → put the task back so it can be redone.
+        if (kind !== "captcha") {
+          setConsumed((prev) => {
+            const next = new Set(prev);
+            next.delete(answered.id);
+            return next;
+          });
+        }
         if (result.error === "daily_limit") {
           setWall(true);
         } else {
-          showToast({ correct: false, cents: 0, xp: 0, note: result.error }, 2500);
+          showToast(
+            { correct: false, cents: 0, xp: 0, note: result.error ?? "Not counted — please retry" },
+            2500
+          );
         }
         return;
       }
@@ -196,7 +215,7 @@ export default function TaskRunnerScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showToast({ correct: false, cents: 0, xp: 0 });
       }
-      // Segment full → mandatory rewarded ad before anything else today.
+      // Segment full → ad wall before anything else.
       if (result.tasksToday >= result.allowedToday) setWall(true);
     });
 
@@ -253,14 +272,15 @@ export default function TaskRunnerScreen() {
     }
   };
 
-  /** Mandatory: the next segment stays locked until a rewarded ad COMPLETES. */
+  /** Mandatory: the next segment stays locked until the interstitial shows. */
   const watchAdAndContinue = async () => {
     setAdBusy(true);
     setWallMsg(null);
-    const earned = await RewardedAdManager.show();
-    if (!earned) {
+    const shown = await InterstitialAdManager.show();
+    if (!shown) {
+      InterstitialAdManager.preload();
       setAdBusy(false);
-      setWallMsg("Reward not received. Please watch the full ad to continue.");
+      setWallMsg("Ad not ready yet — please try again in a moment.");
       return;
     }
     const res = await earn.unlockBatch();
@@ -300,7 +320,9 @@ export default function TaskRunnerScreen() {
           {category.emoji} {category.title}
         </Text>
         <Text className="text-[11px] text-gray-500 dark:text-gray-400">
-          Segment {segment} · {Math.max(0, segmentRemaining)} tasks to next unlock
+          {kind === "captcha"
+            ? `Segment ${segment} · ${Math.max(0, segmentRemaining)} to next unlock`
+            : `${feed.filter((t) => !consumed.has(t.id)).length} tasks left · ${Math.max(0, segmentRemaining)} to next unlock`}
         </Text>
       </View>
       <View className="items-end">
@@ -346,7 +368,7 @@ export default function TaskRunnerScreen() {
             <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
               {atAdCap
                 ? "Incredible hustle — you've completed every segment available today. Fresh segments unlock tomorrow."
-                : "You've completed this task batch. Watch one short rewarded ad to unlock the next AI Task segment."}
+                : "You've completed this task batch. Watch one short ad to unlock the next AI Task segment."}
             </Text>
             <View className="flex-row gap-6 my-5">
               <View className="items-center">
