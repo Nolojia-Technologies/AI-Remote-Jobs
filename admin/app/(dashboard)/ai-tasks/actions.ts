@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { aiTasksService, type AiTaskInput, type AiTaskStatus } from "@/lib/services/aiTasks";
+import { fillTaskImageMarker } from "@/lib/services/imageFill";
 
 export async function createAiTaskAction(input: AiTaskInput) {
   const { email } = await requireAdmin();
+  await fillTaskImageMarker(input);
   const task = await aiTasksService.create(input, email);
   revalidatePath("/ai-tasks");
   return task;
@@ -38,6 +40,11 @@ export async function deleteAiTaskAction(id: string) {
 
 export async function bulkImportAiTasksAction(rows: AiTaskInput[]) {
   const { email } = await requireAdmin();
+  // Resolve IMAGE_NEEDED[keyword] markers into real self-hosted photos.
+  // Sequential on purpose — polite to the Commons API.
+  for (const row of rows) {
+    await fillTaskImageMarker(row);
+  }
   const count = await aiTasksService.bulkInsert(rows, email);
   revalidatePath("/ai-tasks");
   return count;

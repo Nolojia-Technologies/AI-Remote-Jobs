@@ -3,6 +3,7 @@ import { generateJSON } from "@/lib/ai/provider";
 import { aiTaskGenSchema } from "@/lib/ai/schema";
 import { aiTasksPrompt } from "@/lib/ai/prompts";
 import { aiTasksService, type AiTaskInput, type AiTaskStatus } from "@/lib/services/aiTasks";
+import { fillTaskImageMarker, IMAGE_MARKER } from "@/lib/services/imageFill";
 
 export const maxDuration = 180;
 
@@ -33,13 +34,13 @@ export const POST = adminRoute<{ count?: number; kind?: string; focus?: string; 
           : {
               question: t.question ?? "",
               options,
-              // Only trust our own storage or Wikimedia CDN links — anything
-              // else is likely hallucinated and would render a broken image.
-              // (Prefer re-hosting in the task-images bucket; Wikimedia
-              // throttles unknown clients.)
+              // Trusted hosts pass through; IMAGE_NEEDED[keyword] markers are
+              // resolved below to real self-hosted photos; anything else is
+              // likely hallucinated and dropped.
               ...(t.image_url &&
               (t.image_url.includes(".supabase.co/storage/v1/object/public/") ||
-                t.image_url.startsWith("https://upload.wikimedia.org/"))
+                t.image_url.startsWith("https://upload.wikimedia.org/") ||
+                IMAGE_MARKER.test(t.image_url))
                 ? { image_url: t.image_url }
                 : {}),
             };
@@ -66,6 +67,9 @@ export const POST = adminRoute<{ count?: number; kind?: string; focus?: string; 
           : (r.content?.options?.length ?? 0) >= 2 && r.answer)
       );
 
+    for (const row of rows) {
+      await fillTaskImageMarker(row);
+    }
     const created = await aiTasksService.bulkInsert(rows, ctx.email);
     await logGeneration({ kind: "ai_tasks", userId: ctx.userId });
     return { count: created, status };
