@@ -3,26 +3,16 @@
 // UI (progress bars, walls, level cards) and the offline fallback.
 
 export const TASK_ECONOMY = {
-  FREE_DAILY_TASKS: 100,
-  BATCH_SIZE: 25, // server-side batch granted per rewarded-ad unlock
-  /** Rewarded-ad segment wall inside a session (smaller than BATCH_SIZE →
-   *  more rewarded views while ad-unlocks still grant a full 25 tasks). */
-  AD_SEGMENT_SIZE: 15,
-  MAX_AD_BATCHES: 6,
+  /** First segment of the day is free; every next one needs a rewarded ad. */
+  FREE_DAILY_TASKS: 25,
+  /** Tasks per segment — one completed rewarded ad unlocks the next segment. */
+  BATCH_SIZE: 25,
+  MAX_AD_BATCHES: 39, // up to 1,000 tasks/day — effectively unlimited
   CAPTCHA_DAILY_CAP: 150,
   DAILY_GOAL_TASKS: 20, // soft goal shown on the dashboard
   /** Minimum wallet balance before a withdrawal can be requested. */
   WITHDRAWAL_THRESHOLD_CENTS: 100000, // $100 in mills
-  /** "Quick break" every N tasks — countdown or rewarded ad to skip. */
-  BREAK_EVERY_TASKS: 5,
-  BREAK_SECONDS: 15,
 } as const;
-
-/** Forced reading time before answers unlock (anti blind-tap + session depth).
- *  Server independently rejects submissions faster than 30% of est_seconds. */
-export function reviewLockMs(estSeconds: number): number {
-  return Math.round(Math.min(Math.max(estSeconds * 0.4, 6), 15) * 1000);
-}
 
 /** Task levels — thresholds are lifetime approved tasks (mirrors get_task_level). */
 export const TASK_LEVELS = [
