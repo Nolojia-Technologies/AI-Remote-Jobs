@@ -119,6 +119,7 @@ export const MICROTASK_CATEGORIES: Record<string, string> = {
   emotion_labeling: "Emotion Labeling",
   entity_recognition: "Entity Recognition",
   intent_classification: "Intent Classification",
+  captcha_image: "Image Captcha",
   captcha_text: "Text Captcha",
   captcha_math: "Math Captcha",
   captcha_selection: "Selection Captcha",

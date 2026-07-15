@@ -2,7 +2,7 @@
 
 export type TaskKind = "microtask" | "captcha" | "annotation" | "survey";
 export type TaskDifficulty = "easy" | "medium" | "hard";
-export type CaptchaGenerator = "text" | "math" | "selection" | "slider";
+export type CaptchaGenerator = "text" | "math" | "selection" | "slider" | "image";
 
 /** Question payload rendered by the task runner (never contains answers). */
 export interface TaskContent {
@@ -13,6 +13,8 @@ export interface TaskContent {
   image_url?: string;
   /** Captcha rows: which local generator to use. */
   generator?: CaptchaGenerator;
+  /** Image captcha rows: labeled photo pool the grid is built from. */
+  images?: { label: string; url: string }[];
   /** Survey rows: list of questions. */
   questions?: { q: string; options: string[] }[];
 }

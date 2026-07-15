@@ -577,7 +577,11 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
       catch { alert("Survey questions must be valid JSON."); return; }
       answer = null;
     } else if (isCaptcha) {
-      content = { generator: form.generator };
+      // Keep the existing photo pool (image captcha) — the dialog doesn't edit it.
+      content = {
+        generator: form.generator,
+        ...(task?.content?.images ? { images: task.content.images } : {}),
+      };
       answer = null;
     } else {
       content = {
@@ -668,6 +672,7 @@ function TaskDialog({ task, onClose }: { task: AiTaskRow | null; onClose: () => 
               <option value="math">Math captcha</option>
               <option value="selection">Selection captcha</option>
               <option value="slider">Slider captcha</option>
+              <option value="image">Image captcha (photo grid)</option>
             </Select>
             <p className="text-xs text-muted-foreground">Puzzles are generated on-device; the server enforces caps and rate limits.</p>
           </div>

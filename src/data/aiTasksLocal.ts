@@ -16,7 +16,9 @@ export interface CaptchaPuzzle {
   prompt: string;
   /** Multiple-choice options; absent → free-text input. */
   options?: string[];
-  /** Index into options, or the exact expected text. */
+  /** Image-grid captchas: photo URLs laid out as a tappable grid. */
+  images?: string[];
+  /** Index into options/images, or the exact expected text. */
   answer: number | string;
   /** Slider captchas: target 0–100 (±8 tolerance). */
   sliderTarget?: number;
@@ -27,8 +29,28 @@ const pick = <T,>(arr: readonly T[]) => arr[rand(arr.length)];
 
 const CAPTCHA_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-export function generateCaptcha(kind: CaptchaGenerator): CaptchaPuzzle {
+export const IMAGE_CAPTCHA_GRID = 6;
+
+export function generateCaptcha(
+  kind: CaptchaGenerator,
+  imagePool?: { label: string; url: string }[]
+): CaptchaPuzzle {
   switch (kind) {
+    case "image": {
+      // reCAPTCHA-style grid: real photos, tap the one matching the prompt.
+      // Falls back to the emoji selection captcha if the pool is too small.
+      const pool = imagePool ?? [];
+      if (pool.length < IMAGE_CAPTCHA_GRID) return generateCaptcha("selection");
+      const shuffled = [...pool].sort(() => Math.random() - 0.5);
+      const grid = shuffled.slice(0, IMAGE_CAPTCHA_GRID);
+      const answer = rand(IMAGE_CAPTCHA_GRID);
+      return {
+        display: "",
+        prompt: `Tap the ${grid[answer].label}`,
+        images: grid.map((g) => g.url),
+        answer,
+      };
+    }
     case "text": {
       let s = "";
       for (let i = 0; i < 5; i++) s += CAPTCHA_CHARS[rand(CAPTCHA_CHARS.length)];

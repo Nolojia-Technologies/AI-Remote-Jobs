@@ -140,7 +140,7 @@ export default function TaskRunnerScreen() {
   useEffect(() => {
     if (kind === "captcha" && captchaTask) {
       const gen = (captchaTask.content.generator ?? "text") as CaptchaGenerator;
-      setPuzzle(generateCaptcha(gen));
+      setPuzzle(generateCaptcha(gen, captchaTask.content.images));
       setTextAnswer("");
       setSliderValue(0);
       setCaptchaError(false);
@@ -262,13 +262,14 @@ export default function TaskRunnerScreen() {
   };
 
   const selectCaptchaOption = (i: number) => {
-    if (!puzzle) return;
+    if (!puzzle || !task) return;
     if (i === puzzle.answer) submit({ captcha: true, solved: true });
     else {
       setCaptchaError(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const gen = (task.content.generator ?? "selection") as CaptchaGenerator;
       setTimeout(() => {
-        setPuzzle(generateCaptcha("selection"));
+        setPuzzle(generateCaptcha(gen, task.content.images));
         setCaptchaError(false);
       }, 900);
     }
@@ -516,7 +517,7 @@ export default function TaskRunnerScreen() {
               Question {surveyStep + 1} of {surveyQuestions.length}
             </Text>
           )}
-          {isCaptcha && puzzle && (
+          {isCaptcha && puzzle && !puzzle.images && (
             <View
               className={`rounded-2xl py-6 items-center mb-4 ${
                 captchaError
@@ -581,8 +582,42 @@ export default function TaskRunnerScreen() {
             </View>
           )}
 
+          {/* Captcha: image grid — tap the photo matching the prompt */}
+          {isCaptcha && puzzle?.images && (
+            <View className="mt-4">
+              {captchaError && (
+                <View className="bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2 mb-3">
+                  <Text className="text-xs text-red-500 font-semibold text-center">
+                    Not quite — here's a new set
+                  </Text>
+                </View>
+              )}
+              <View className="flex-row flex-wrap justify-between">
+                {puzzle.images.map((uri, i) => (
+                  <TouchableOpacity
+                    key={`${uri}-${i}`}
+                    disabled={submitting || !!feedback || captchaError}
+                    onPress={() => selectCaptchaOption(i)}
+                    activeOpacity={0.75}
+                    style={{ width: "31.5%" }}
+                    className="mb-2.5"
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={{ width: "100%", height: 104, borderRadius: 14 }}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-1">
+                Tap the picture that matches the prompt above
+              </Text>
+            </View>
+          )}
+
           {/* Captcha: free text */}
-          {isCaptcha && puzzle && !puzzle.options && puzzle.sliderTarget == null && (
+          {isCaptcha && puzzle && !puzzle.options && !puzzle.images && puzzle.sliderTarget == null && (
             <>
               <TextInput
                 value={textAnswer}
