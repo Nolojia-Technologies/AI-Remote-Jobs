@@ -33,9 +33,13 @@ export const POST = adminRoute<{ count?: number; kind?: string; focus?: string; 
           : {
               question: t.question ?? "",
               options,
-              // Only trust plausible Wikimedia CDN links — anything else is
-              // likely hallucinated and would render a broken image.
-              ...(t.image_url && t.image_url.startsWith("https://upload.wikimedia.org/")
+              // Only trust our own storage or Wikimedia CDN links — anything
+              // else is likely hallucinated and would render a broken image.
+              // (Prefer re-hosting in the task-images bucket; Wikimedia
+              // throttles unknown clients.)
+              ...(t.image_url &&
+              (t.image_url.includes(".supabase.co/storage/v1/object/public/") ||
+                t.image_url.startsWith("https://upload.wikimedia.org/"))
                 ? { image_url: t.image_url }
                 : {}),
             };

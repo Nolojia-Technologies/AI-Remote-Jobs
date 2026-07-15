@@ -97,6 +97,7 @@ export default function TaskRunnerScreen() {
   const [breakLeft, setBreakLeft] = useState<number>(TASK_ECONOMY.BREAK_SECONDS);
   const [reviewLeft, setReviewLeft] = useState(0);
   const [imgLoading, setImgLoading] = useState(true);
+  const [imgFailed, setImgFailed] = useState(false);
   const [adBusy, setAdBusy] = useState(false);
   const [wallMsg, setWallMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -148,6 +149,7 @@ export default function TaskRunnerScreen() {
     setSurveyAnswers([]);
     setFeedback(null);
     setImgLoading(true);
+    setImgFailed(false);
     startedAt.current = Date.now();
   }, [kind, index, captchaRound, captchaTask?.id]);
 
@@ -538,13 +540,27 @@ export default function TaskRunnerScreen() {
           {/* Real photo (annotation tasks) */}
           {!isCaptcha && task.content.image_url && (
             <View className="rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 mb-4">
-              <Image
-                source={{ uri: task.content.image_url }}
-                style={{ width: "100%", height: 220 }}
-                resizeMode="cover"
-                onLoadEnd={() => setImgLoading(false)}
-              />
-              {imgLoading && (
+              {imgFailed ? (
+                <View style={{ height: 220 }} className="items-center justify-center">
+                  <Text className="text-4xl mb-2">🖼️</Text>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 text-center px-6">
+                    Image couldn't load — check your connection, or answer from the
+                    question text.
+                  </Text>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: task.content.image_url }}
+                  style={{ width: "100%", height: 220 }}
+                  resizeMode="cover"
+                  onLoadEnd={() => setImgLoading(false)}
+                  onError={() => {
+                    setImgLoading(false);
+                    setImgFailed(true);
+                  }}
+                />
+              )}
+              {imgLoading && !imgFailed && (
                 <View className="absolute inset-0 items-center justify-center">
                   <ActivityIndicator color="#2563EB" />
                 </View>
