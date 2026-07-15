@@ -9,6 +9,7 @@ import { useUserStore } from "../src/stores/userStore";
 import { AdEngineProvider } from "../src/ads/AdEngineProvider";
 import { RatingProvider } from "../src/rating/RatingProvider";
 import { NotificationProvider } from "../src/notifications/NotificationProvider";
+import { UpdateGate } from "../src/components/UpdateGate";
 import { ThemeProvider, ThemedStatusBar } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -119,6 +120,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings/index" options={{ headerShown: false }} />
           <Stack.Screen name="privacy/index" options={{ headerShown: false }} />
           </Stack>
+          <UpdateGate />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -39,7 +39,9 @@
       "Bash(node scripts/run-sql.mjs -q \"select kind, count\\(*\\) n, sum\\(\\(select count\\(*\\) from ai_task_answers a where a.task_id=ai_tasks.id\\)\\) keys from ai_tasks where status='published' group by kind order by kind\")",
       "Bash(npx next *)",
       "PowerShell($conns = Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue; if \\($conns\\) { $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -Confirm:$false; Write-Output \"killed PID $_\" } } else { Write-Output \"port free\" })",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npx eas *)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); const b=d[0]; console.log\\(b.status, b.artifacts?.buildUrl ?? ''\\)\")"
     ]
   }
 }

@@ -27,6 +27,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: "ai-home-jobs",
   owner: "shaun-2",
   version: "1.0.10",
+  // Over-the-air JS updates (EAS Update). runtimeVersion follows the store
+  // version, so an update published for 1.0.11 can never land on a build
+  // with different native code. Publish with: npm run update:push
+  runtimeVersion: { policy: "appVersion" },
+  updates: {
+    url: "https://u.expo.dev/af2eb44f-5540-4eab-af70-05e45a8880a1",
+    checkAutomatically: "ON_LOAD",
+    fallbackToCacheTimeout: 0,
+  },
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "aihustleacademy",

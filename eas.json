@@ -36,7 +36,8 @@
         "EXPO_PUBLIC_ENABLE_META_MEDIATION": "true",
         "EXPO_PUBLIC_FACEBOOK_APP_ID": "26851703637859103",
         "EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN": "ec3604c1e9cef7ac42026b4d7b61c65e"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "android": {
@@ -48,7 +49,8 @@
         "EXPO_PUBLIC_ENABLE_META_MEDIATION": "true",
         "EXPO_PUBLIC_FACEBOOK_APP_ID": "26851703637859103",
         "EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN": "ec3604c1e9cef7ac42026b4d7b61c65e"
-      }
+      },
+      "channel": "production"
     },
     "testads": {
       "distribution": "internal",
