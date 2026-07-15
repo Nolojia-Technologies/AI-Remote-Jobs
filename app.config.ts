@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "AI Remote Jobs",
   slug: "ai-home-jobs",
   owner: "shaun-2",
-  version: "1.0.11",
+  version: "1.0.12",
   // Over-the-air JS updates (EAS Update). runtimeVersion follows the store
   // version, so an update published for 1.0.11 can never land on a build
   // with different native code. Publish with: npm run update:push
@@ -54,7 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    versionCode: 21,
+    versionCode: 22,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#2563EB",
