@@ -88,9 +88,9 @@ export const AD_CONFIG = {
     ],
   },
   appOpen: {
-    inactivityMs: 30 * MIN, // show on resume after >30 minutes in background
-    dailyLimit: 3,
-    interstitialGuardMs: 30 * SEC,
+    inactivityMs: 5 * MIN, // show on resume after >5 minutes in background
+    dailyLimit: 15,
+    interstitialGuardMs: 15 * SEC,
   },
   rewarded: {
     dailyLimit: Infinity,

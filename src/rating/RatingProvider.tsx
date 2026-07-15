@@ -107,6 +107,19 @@ export function RatingProvider() {
     return () => clearTimeout(t);
   }, [pathname]);
 
+  // ─── Periodic in-session roll — the prompt can surface at any point of a
+  // longer session, not just on arrival (still engine-gated: eligibility,
+  // cooldowns, safe screen, ad guard, chance roll).
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (!isSafePath(pathname)) return;
+      const store = useRatingStore.getState();
+      if (!store.hydrated || store.promptVisible) return;
+      RatingManager.maybePrompt("random_session");
+    }, RATING_CONFIG.timing.periodicRollMs);
+    return () => clearInterval(iv);
+  }, [pathname]);
+
   return (
     <RatingPrompt
       visible={prompt.visible}
