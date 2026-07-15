@@ -4,10 +4,10 @@
 
 export const TASK_ECONOMY = {
   /** First segment of the day is free; every next one needs a rewarded ad. */
-  FREE_DAILY_TASKS: 25,
+  FREE_DAILY_TASKS: 15,
   /** Tasks per segment — one completed rewarded ad unlocks the next segment. */
-  BATCH_SIZE: 25,
-  MAX_AD_BATCHES: 39, // up to 1,000 tasks/day — effectively unlimited
+  BATCH_SIZE: 15,
+  MAX_AD_BATCHES: 66, // ≈1,000 tasks/day — effectively unlimited
   CAPTCHA_DAILY_CAP: 150,
   DAILY_GOAL_TASKS: 20, // soft goal shown on the dashboard
   /** Minimum wallet balance before a withdrawal can be requested. */
