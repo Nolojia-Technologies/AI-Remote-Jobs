@@ -672,6 +672,14 @@ export default function TaskRunnerScreen() {
             </View>
           )}
         </View>
+
+        {/* Surveys leave plenty of empty space below the card → native ad.
+            Mounted only for surveys; stays in place across questions. */}
+        {isSurvey && (
+          <View className="mt-5">
+            <NativeAdCard />
+          </View>
+        )}
       </ScrollView>
 
       {ToastView}
