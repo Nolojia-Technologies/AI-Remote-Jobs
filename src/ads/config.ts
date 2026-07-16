@@ -91,7 +91,9 @@ export const AD_CONFIG = {
     // MAXIMUM-PRESSURE MODE (product decision 2026-07): any resume after a
     // 1-minute background counts, capped only nominally. Rollback values:
     // inactivityMs 5 * MIN, dailyLimit 15, interstitialGuardMs 15 * SEC.
-    inactivityMs: 1 * MIN, // show on resume after >1 minute in background
+    // 30s threshold: every real reopen fires, but brief system-dialog blips
+    // (share sheet, Google sign-in, permission prompts) don't ad-bomb a flow.
+    inactivityMs: 30 * SEC,
     dailyLimit: 999,
     interstitialGuardMs: 10 * SEC,
   },

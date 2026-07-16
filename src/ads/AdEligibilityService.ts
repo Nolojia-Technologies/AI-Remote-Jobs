@@ -26,10 +26,11 @@ export const AdEligibilityService = {
   },
 
   appOpen(state: AdState, snapshot: BehaviorSnapshot, now: number): EligibilityResult {
-    const screen = state.session.currentScreen;
+    // Fires on EVERY open (launch + resume) for all users. Only exceptions:
+    // the very first session after install, an interstitial in the last 10s
+    // (back-to-back ads are what AdMob flags), and sub-30s background blips
+    // (share sheet / sign-in dialogs briefly background the app).
     if (snapshot.sessionCount <= 1) return no("first session");
-    if (state.session.cameFromNotification) return no("came from notification");
-    if (screen === "lesson" || screen === "quiz") return no("user is learning");
     if (AdCooldownManager.interstitialJustShown(state, now)) return no("interstitial just shown");
     if (!AdCooldownManager.appOpenInactivityMet(state, now)) return no("not inactive long enough");
     if (!AdCooldownManager.withinDailyLimit("app_open", state, now)) return no("daily app-open limit reached");
