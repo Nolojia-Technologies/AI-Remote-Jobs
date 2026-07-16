@@ -188,6 +188,11 @@ export default function WalletScreen() {
           ))}
         </View>
 
+        {/* Native ad — mid-screen, always visible even with no history */}
+        <View className="mx-5 mt-4">
+          <NativeAdCard />
+        </View>
+
         {/* Earnings breakdown */}
         <Text className="text-lg font-bold text-gray-900 dark:text-white px-5 mt-6 mb-3">
           Earnings Breakdown

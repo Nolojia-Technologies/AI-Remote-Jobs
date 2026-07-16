@@ -147,6 +147,11 @@ export default function ReferralCenterScreen() {
           ))}
         </View>
 
+        {/* Native ad — mid-screen, right under the stats */}
+        <View className="mx-5 mt-4">
+          <NativeAdCard />
+        </View>
+
         {/* How it works */}
         <Text className="text-lg font-bold text-gray-900 dark:text-white px-5 mt-6 mb-3">
           How it works
