@@ -23,6 +23,7 @@ import {
 } from "../../src/constants/taskEconomy";
 import { generateCaptcha, sliderMatches, CaptchaPuzzle } from "../../src/data/aiTasksLocal";
 import { InterstitialAdManager } from "../../src/ads/InterstitialAdManager";
+import { RewardedAdManager } from "../../src/ads/RewardedAdManager";
 import { JobInterstitialManager } from "../../src/ads/JobInterstitialManager";
 import { NotificationService } from "../../src/notifications/NotificationService";
 import { NativeAdCard } from "../../src/components/ads/NativeAdCard";
@@ -72,6 +73,13 @@ function SliderTrack({
 
 type Toast = { correct: boolean; cents: number; xp: number; note?: string } | null;
 
+// ─── Task-runner ad pacing ─────────────────────────────────────
+// 2 rewarded ads unlock a tasking session; an interstitial fires after every
+// 5 CORRECT answers (skipped when the segment wall's own interstitial is
+// about to show); a wrong answer gates continuation behind a rewarded ad.
+const START_ADS_REQUIRED = 2;
+const CORRECT_STREAK_AD_EVERY = 5;
+
 export default function TaskRunnerScreen() {
   const router = useRouter();
   const { kind: kindParam } = useLocalSearchParams<{ kind?: string }>();
@@ -95,6 +103,17 @@ export default function TaskRunnerScreen() {
   const [imgLoading, setImgLoading] = useState(true);
   const [imgFailed, setImgFailed] = useState(false);
   const [notifMsg, setNotifMsg] = useState<string | null>(null);
+
+  // Session start gate: rewarded ads watched so far this session
+  const [startAdsWatched, setStartAdsWatched] = useState(0);
+  const [gateBusy, setGateBusy] = useState(false);
+  const [gateMsg, setGateMsg] = useState<string | null>(null);
+  // Wrong-answer gate: a rewarded ad is required to keep tasking
+  const [wrongGate, setWrongGate] = useState(false);
+  const [wrongBusy, setWrongBusy] = useState(false);
+  const [wrongMsg, setWrongMsg] = useState<string | null>(null);
+  // Correct answers since the last interstitial
+  const correctStreak = useRef(0);
 
   // Captcha state — regenerated per round
   const captchaTasks = useMemo(() => (kind === "captcha" ? feed : []), [kind, feed.length]);
@@ -126,6 +145,7 @@ export default function TaskRunnerScreen() {
 
   useEffect(() => {
     InterstitialAdManager.preload();
+    RewardedAdManager.preload(); // start gate + wrong-answer gate both need one
   }, []);
 
   // Already at the segment limit when entering → straight to the ad wall.
@@ -211,12 +231,25 @@ export default function TaskRunnerScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setSessionCents((c) => c + result.rewardCents);
         showToast({ correct: true, cents: result.rewardCents, xp: result.xp });
+        correctStreak.current += 1;
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showToast({ correct: false, cents: 0, xp: 0 });
+        // Wrong answer → a rewarded ad is required to keep tasking.
+        correctStreak.current = 0;
+        setWrongGate(true);
       }
-      // Segment full → ad wall before anything else.
-      if (result.tasksToday >= result.allowedToday) setWall(true);
+      // Segment full → ad wall (its own interstitial) before anything else.
+      if (result.tasksToday >= result.allowedToday) {
+        correctStreak.current = 0;
+        setWall(true);
+      } else if (result.correct && correctStreak.current >= CORRECT_STREAK_AD_EVERY) {
+        // Every 5 correct answers → interstitial break.
+        correctStreak.current = 0;
+        setTimeout(() => {
+          InterstitialAdManager.show();
+        }, 600);
+      }
     });
 
     // Surveys are a larger unit of work → natural interstitial moment.
@@ -237,6 +270,8 @@ export default function TaskRunnerScreen() {
     } else {
       setCaptchaError(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      correctStreak.current = 0;
+      setWrongGate(true); // rewarded ad required to continue
       const gen = (task.content.generator ?? "text") as CaptchaGenerator;
       setTimeout(() => {
         setPuzzle(generateCaptcha(gen, task.content.images));
@@ -253,6 +288,8 @@ export default function TaskRunnerScreen() {
     else {
       setCaptchaError(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      correctStreak.current = 0;
+      setWrongGate(true); // rewarded ad required to continue
       const gen = (task.content.generator ?? "selection") as CaptchaGenerator;
       setTimeout(() => {
         setPuzzle(generateCaptcha(gen, task.content.images));
@@ -290,6 +327,34 @@ export default function TaskRunnerScreen() {
       return;
     }
     setWall(false);
+  };
+
+  /** Start gate: each tap plays one rewarded ad; 2 unlock the session. */
+  const watchStartAd = async () => {
+    setGateBusy(true);
+    setGateMsg(null);
+    const earned = await RewardedAdManager.show();
+    setGateBusy(false);
+    if (!earned) {
+      RewardedAdManager.preload();
+      setGateMsg("Ad not ready yet — please try again in a moment.");
+      return;
+    }
+    setStartAdsWatched((n) => n + 1);
+  };
+
+  /** Wrong-answer gate: one rewarded ad resumes tasking. */
+  const watchWrongAnswerAd = async () => {
+    setWrongBusy(true);
+    setWrongMsg(null);
+    const earned = await RewardedAdManager.show();
+    setWrongBusy(false);
+    if (!earned) {
+      RewardedAdManager.preload();
+      setWrongMsg("Ad not ready yet — please try again in a moment.");
+      return;
+    }
+    setWrongGate(false);
   };
 
   const enableNotifications = async () => {
@@ -354,7 +419,113 @@ export default function TaskRunnerScreen() {
     </View>
   );
 
-  // ─── Mandatory rewarded-ad wall ────────────────────────────
+  // ─── Session start gate: 2 rewarded ads unlock tasking ────
+  if (task && startAdsWatched < START_ADS_REQUIRED) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
+        {Header}
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 20 }}>
+          <View className="bg-white dark:bg-gray-800 rounded-3xl p-6 items-center">
+            <Text className="text-5xl mb-3">🎬</Text>
+            <Text className="text-xl font-bold text-gray-900 dark:text-white text-center">
+              Ready to Earn?
+            </Text>
+            <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
+              Watch {START_ADS_REQUIRED} short ads to start your tasking session and unlock
+              today's paid tasks.
+            </Text>
+            <View className="flex-row gap-2.5 my-5">
+              {Array.from({ length: START_ADS_REQUIRED }).map((_, i) => (
+                <View
+                  key={i}
+                  className={`w-3.5 h-3.5 rounded-full ${
+                    i < startAdsWatched ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+                  }`}
+                />
+              ))}
+            </View>
+            <TouchableOpacity
+              onPress={watchStartAd}
+              disabled={gateBusy}
+              className="bg-primary-600 rounded-2xl py-4 px-6 w-full flex-row items-center justify-center gap-2"
+              activeOpacity={0.85}
+            >
+              {gateBusy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Play size={18} color="#fff" />
+                  <Text className="text-white font-bold text-base">
+                    Watch Ad {Math.min(startAdsWatched + 1, START_ADS_REQUIRED)} of {START_ADS_REQUIRED}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {gateMsg && (
+              <Text className="text-xs text-red-500 mt-3 text-center font-semibold">{gateMsg}</Text>
+            )}
+            <TouchableOpacity onPress={exitRunner} className="mt-3 py-2">
+              <Text className="text-gray-500 dark:text-gray-400 font-semibold">
+                Back to AI Tasks
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View className="mt-4">
+            <NativeAdCard />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Wrong-answer gate: rewarded ad to continue tasking ───
+  if (wrongGate) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
+        {Header}
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 20 }}>
+          <View className="bg-white dark:bg-gray-800 rounded-3xl p-6 items-center">
+            <Text className="text-5xl mb-3">❌</Text>
+            <Text className="text-xl font-bold text-gray-900 dark:text-white text-center">
+              Wrong Answer
+            </Text>
+            <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
+              That answer wasn't correct, so no reward was earned. Watch a short ad to
+              continue tasking — take your time on the next one!
+            </Text>
+            <TouchableOpacity
+              onPress={watchWrongAnswerAd}
+              disabled={wrongBusy}
+              className="bg-primary-600 rounded-2xl py-4 px-6 w-full flex-row items-center justify-center gap-2 mt-5"
+              activeOpacity={0.85}
+            >
+              {wrongBusy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Play size={18} color="#fff" />
+                  <Text className="text-white font-bold text-base">Watch Ad & Continue</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {wrongMsg && (
+              <Text className="text-xs text-red-500 mt-3 text-center font-semibold">{wrongMsg}</Text>
+            )}
+            <TouchableOpacity onPress={exitRunner} className="mt-3 py-2">
+              <Text className="text-gray-500 dark:text-gray-400 font-semibold">
+                Back to AI Tasks
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View className="mt-4">
+            <NativeAdCard />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Mandatory segment ad wall (interstitial) ──────────────
   if (wall) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
