@@ -644,6 +644,11 @@ export default function TaskRunnerScreen() {
       ? puzzle?.options ?? []
       : task.content.options ?? [];
 
+  // Native ad below the question — only when the task is short enough to
+  // leave visible blank space (long tasks keep the answer area clean).
+  const hasTaskImage = isCaptcha ? Boolean(puzzle?.images) : Boolean(task.content.image_url);
+  const roomForNativeAd = isSurvey || (hasTaskImage ? options.length <= 2 : options.length <= 4);
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
       {Header}
@@ -866,9 +871,9 @@ export default function TaskRunnerScreen() {
           )}
         </View>
 
-        {/* Surveys leave plenty of empty space below the card → native ad.
-            Mounted only for surveys; stays in place across questions. */}
-        {isSurvey && (
+        {/* Short tasks leave empty space below the card → native ad.
+            Stays mounted across questions/tasks so it doesn't reload. */}
+        {roomForNativeAd && (
           <View className="mt-5">
             <NativeAdCard />
           </View>
