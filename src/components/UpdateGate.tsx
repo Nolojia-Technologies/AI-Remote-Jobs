@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AppState, Linking, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
+import { BlurView } from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import * as Updates from "expo-updates";
@@ -160,28 +161,46 @@ export function UpdateGate() {
         </View>
       </Modal>
 
-      {/* OTA update downloaded — one-tap restart banner */}
-      {otaReady && (
-        <View
-          className="absolute left-4 right-4 bottom-24 bg-gray-900 dark:bg-gray-800 rounded-2xl px-4 py-3 flex-row items-center gap-3"
-          style={{ elevation: 10, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 12 }}
+      {/* OTA update downloaded — centered restart card over a blurred app */}
+      <Modal
+        visible={otaReady}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOtaReady(false)}
+      >
+        <BlurView
+          intensity={45}
+          tint="dark"
+          experimentalBlurMethod="dimezisBlurView"
+          style={{ flex: 1 }}
         >
-          <RefreshCw size={16} color="#60A5FA" />
-          <Text className="text-white text-xs font-semibold flex-1">
-            Improvements downloaded — restart to apply.
-          </Text>
-          <TouchableOpacity
-            onPress={() => Updates.reloadAsync().catch(() => setOtaReady(false))}
-            className="bg-primary-600 rounded-xl px-3.5 py-2"
-            activeOpacity={0.85}
-          >
-            <Text className="text-white text-xs font-bold">Restart</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setOtaReady(false)} className="px-1 py-2">
-            <Text className="text-gray-400 text-xs font-bold">✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          {/* Dark scrim doubles as fallback where the blur isn't supported */}
+          <View className="flex-1 bg-black/45 items-center justify-center p-8">
+            <View className="bg-white dark:bg-gray-900 rounded-3xl p-6 items-center w-full">
+              <View className="w-14 h-14 rounded-2xl bg-primary-600 items-center justify-center mb-3">
+                <RefreshCw size={26} color="#fff" />
+              </View>
+              <Text className="text-xl font-bold text-gray-900 dark:text-white text-center">
+                Update ready
+              </Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
+                We've downloaded the latest improvements for you. Restart the app now to
+                apply them — it only takes a second.
+              </Text>
+              <TouchableOpacity
+                onPress={() => Updates.reloadAsync().catch(() => setOtaReady(false))}
+                className="bg-primary-600 rounded-2xl py-4 px-6 w-full items-center mt-5"
+                activeOpacity={0.85}
+              >
+                <Text className="text-white font-bold text-base">Restart Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setOtaReady(false)} className="mt-3 py-1.5">
+                <Text className="text-gray-500 dark:text-gray-400 font-semibold">Later</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </BlurView>
+      </Modal>
     </>
   );
 }
