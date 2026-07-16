@@ -88,9 +88,12 @@ export const AD_CONFIG = {
     ],
   },
   appOpen: {
-    inactivityMs: 5 * MIN, // show on resume after >5 minutes in background
-    dailyLimit: 15,
-    interstitialGuardMs: 15 * SEC,
+    // MAXIMUM-PRESSURE MODE (product decision 2026-07): any resume after a
+    // 1-minute background counts, capped only nominally. Rollback values:
+    // inactivityMs 5 * MIN, dailyLimit 15, interstitialGuardMs 15 * SEC.
+    inactivityMs: 1 * MIN, // show on resume after >1 minute in background
+    dailyLimit: 999,
+    interstitialGuardMs: 10 * SEC,
   },
   rewarded: {
     dailyLimit: Infinity,
